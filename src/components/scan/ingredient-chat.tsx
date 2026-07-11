@@ -18,11 +18,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  IngredientChatError,
   sendIngredientMessage,
   type IngredientChatMessage,
 } from "@/lib/api/ingredients-chat";
 import { useVoice } from "@/lib/sous-chef/use-voice";
 import { useConversation } from "@/lib/sous-chef/use-conversation";
+import {
+  classifyUtterance,
+  generateReply,
+} from "@/lib/sous-chef/conversation";
 
 type IngredientChatProps = {
   onComplete: (data: {
@@ -65,6 +70,8 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
   const [isSending, setIsSending] = useState(false);
   const [readyToContinue, setReadyToContinue] = useState(false);
   const [error, setError] = useState("");
+  // True once Gemini has rate-limited us and we fell back to basic mode.
+  const [basicMode, setBasicMode] = useState(false);
 
   // Voice (ElevenLabs).
   const {
@@ -81,6 +88,7 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
   // Mirrors of state that the async voice callbacks must read freshly.
   const messagesRef = useRef(messages);
   const stepRef = useRef(step);
+  const ingredientsRef = useRef(ingredients);
   const isSendingRef = useRef(false);
   useEffect(() => {
     messagesRef.current = messages;
@@ -88,6 +96,9 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
   useEffect(() => {
     stepRef.current = step;
   }, [step]);
+  useEffect(() => {
+    ingredientsRef.current = ingredients;
+  }, [ingredients]);
 
   /**
    * The single path for every input — typed, push-to-talk, or conversation mode.
@@ -136,6 +147,39 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
 
       return result.reply;
     } catch (caughtError) {
+      // Gemini rate-limited (free-tier quota). Rather than dying mid-demo, fall
+      // back to the local classifier so voice, ingredient capture and spoken
+      // replies all keep working. The UI says so plainly — see the banner below.
+      if (
+        caughtError instanceof IngredientChatError &&
+        caughtError.isRateLimited
+      ) {
+        setBasicMode(true);
+
+        const classified = classifyUtterance(cleaned);
+
+        if (classified.ingredients.length > 0) {
+          setIngredients((current) => [
+            ...new Set([...current, ...classified.ingredients]),
+          ]);
+        }
+
+        const reply = generateReply(classified, {
+          knownIngredients: ingredientsRef.current,
+        });
+
+        setMessages((current) => [
+          ...current,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            text: reply,
+          },
+        ]);
+
+        return reply;
+      }
+
       setError(
         caughtError instanceof Error
           ? caughtError.message
@@ -337,6 +381,14 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
               <LoaderCircle className="size-4 animate-spin" />
               Thinking...
             </div>
+          </div>
+        )}
+
+        {basicMode && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+            <span className="font-semibold">Basic mode.</span> The Gemini
+            free-tier quota is used up, so replies are coming from a simple
+            local matcher instead of the AI. Voice still works.
           </div>
         )}
 
