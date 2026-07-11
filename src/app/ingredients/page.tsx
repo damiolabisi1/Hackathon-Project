@@ -84,22 +84,49 @@ export default function IngredientsPage() {
     );
   }
 
-  function handleGenerateRecipes() {
+  async function handleGenerateRecipes() {
+    const confirmedIngredients = ingredients
+      .filter((ingredient) => ingredient.confirmed)
+      .map((ingredient) => ingredient.name);
+
+    if (confirmedIngredients.length === 0) {
+      console.error("No confirmed ingredients selected.");
+      return;
+    }
+
     const requestData = {
-      ingredients: ingredients
-        .filter((ingredient) => ingredient.confirmed)
-        .map((ingredient) => ingredient.name),
+      ingredients: confirmedIngredients,
       dietaryPreferences: selectedDiet,
       maximumCookingTime: cookingTime,
       servings,
     };
 
-    sessionStorage.setItem(
-      "recipeGenerationRequest",
-      JSON.stringify(requestData),
-    );
+    try {
+      const response = await fetch("/api/generate-recipes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData),
+    });
 
-    router.push("/recipes");
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.error ?? "We could not generate recipes.",
+        );
+      }
+
+      sessionStorage.setItem(
+        "generatedRecipes",
+        JSON.stringify(result.recipes),
+      );
+
+      router.push("/recipes");
+    } catch (error) {
+      console.error("Recipe generation failed:", error);
+    }
   }
 
   return (
