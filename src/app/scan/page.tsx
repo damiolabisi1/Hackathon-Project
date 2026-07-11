@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   CircleCheck,
@@ -28,7 +28,18 @@ export default function ScanPage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isDetecting, setIsDetecting] = useState(false);
   const [error, setError] = useState("");
+  const searchParams = useSearchParams();
   const [inputMode, setInputMode] = useState<"photo" | "chat">("photo");
+
+  useEffect(() => {
+    const mode = searchParams.get("mode");
+
+    if (mode === "chat") {
+      setInputMode("chat");
+    } else {
+      setInputMode("photo");
+    }
+  }, [searchParams]);
 
   async function handleDetectIngredients() {
     if (!selectedImage) return;
@@ -63,18 +74,24 @@ export default function ScanPage() {
         </div>
 
         <h1 className="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl">
-          Scan your ingredients
+          {inputMode === "photo"
+            ? "Scan your ingredients"
+            : "Tell us what you have"}
         </h1>
 
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          Upload a clear picture of the ingredients you already have. Our AI
-          will identify them before suggesting recipes.
+          {inputMode === "photo"
+            ? "Upload a clear picture of the ingredients you already have. Our AI will identify them before suggesting recipes."
+            : "Describe the ingredients available in your kitchen, and Sous Chef will help organize them before suggesting recipes."}
         </p>
       </div>
       <div className="mb-6 grid grid-cols-2 rounded-2xl bg-muted p-1">
         <button
           type="button"
-          onClick={() => setInputMode("photo")}
+          onClick={() => {
+            setInputMode("photo");
+            router.push("/scan?mode=photo");
+          }}
           className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
             inputMode === "photo"
               ? "bg-white text-green-700 shadow-sm"
@@ -86,7 +103,10 @@ export default function ScanPage() {
 
         <button
           type="button"
-          onClick={() => setInputMode("chat")}
+          onClick={() => {
+            setInputMode("chat");
+            router.push("/scan?mode=chat");
+          }}
           className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
             inputMode === "chat"
               ? "bg-white text-green-700 shadow-sm"

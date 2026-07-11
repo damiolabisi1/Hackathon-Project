@@ -123,7 +123,7 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
           </span>
 
           <div>
-            <h2 className="font-bold">Ingredient assistant</h2>
+            <h2 className="font-bold">Sous Chef</h2>
             <p className="text-sm text-muted-foreground">
               Describe what you already have.
             </p>

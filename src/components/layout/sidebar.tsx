@@ -10,6 +10,7 @@ import {
   Settings,
   UserRound,
   CalendarDays,
+  Sparkles,
 } from "lucide-react";
 
 const navigationItems = [
@@ -20,8 +21,13 @@ const navigationItems = [
   },
   {
     label: "Scan Ingredients",
-    href: "/scan",
+    href: "/scan?mode=photo",
     icon: ScanLine,
+  },
+  {
+    label: "Describe Ingredients",
+    href: "/scan?mode=chat",
+    icon: Sparkles,
   },
   {
     label: "Saved Recipes",
