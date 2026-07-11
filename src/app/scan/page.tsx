@@ -14,6 +14,7 @@ import { ImageUploader } from "@/components/scan/image-uploader";
 import { Button } from "@/components/ui/button";
 import { detectIngredients } from "@/lib/api/ingredients";
 import type { IngredientDetectionResponse } from "@/types/ingredient";
+import { IngredientChat } from "@/components/scan/ingredient-chat";
 
 const tips = [
   "Use good lighting.",
@@ -27,6 +28,7 @@ export default function ScanPage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isDetecting, setIsDetecting] = useState(false);
   const [error, setError] = useState("");
+  const [inputMode, setInputMode] = useState<"photo" | "chat">("photo");
 
   async function handleDetectIngredients() {
     if (!selectedImage) return;
@@ -69,9 +71,65 @@ export default function ScanPage() {
           will identify them before suggesting recipes.
         </p>
       </div>
+      <div className="mb-6 grid grid-cols-2 rounded-2xl bg-muted p-1">
+        <button
+          type="button"
+          onClick={() => setInputMode("photo")}
+          className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+            inputMode === "photo"
+              ? "bg-white text-green-700 shadow-sm"
+              : "text-muted-foreground"
+          }`}
+        >
+          Upload a photo
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setInputMode("chat")}
+          className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+            inputMode === "chat"
+              ? "bg-white text-green-700 shadow-sm"
+              : "text-muted-foreground"
+          }`}
+        >
+          Describe ingredients
+        </button>
+      </div>
 
       <div className="grid gap-8 xl:grid-cols-[1fr_320px]">
-        <div>
+        {inputMode === "photo" ? (
+          <ImageUploader
+            selectedImage={selectedImage}
+            onImageSelect={setSelectedImage}
+          />
+        ) : (
+          <IngredientChat
+            onComplete={({ ingredients, dietaryPreferences }) => {
+              const result = {
+                ingredients: ingredients.map((name) => ({
+                  id: crypto.randomUUID(),
+                  name,
+                  confirmed: true,
+                })),
+                uncertainItems: [],
+              };
+
+              sessionStorage.setItem(
+                "detectedIngredients",
+                JSON.stringify(result),
+              );
+
+              sessionStorage.setItem(
+                "dietaryPreferences",
+                JSON.stringify(dietaryPreferences),
+              );
+
+              router.push("/ingredients");
+            }}
+          />
+        )}
+        {/* <div>
           <ImageUploader
             selectedImage={selectedImage}
             onImageSelect={setSelectedImage}
@@ -102,7 +160,7 @@ export default function ScanPage() {
               </>
             )}
           </Button>
-        </div>
+        </div> */}
 
         <aside className="h-fit rounded-3xl border bg-white p-6 shadow-sm">
           <span className="flex size-11 items-center justify-center rounded-xl bg-green-100 text-green-700">
