@@ -1,0 +1,26 @@
+export type RecipeIngredient = {
+  name: string;
+  amount: string;
+  available: boolean;
+};
+
+export type RecipeStep = {
+  step: number;
+  instruction: string;
+};
+
+export type Recipe = {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  cookingTimeMinutes: number;
+  difficulty: "Easy" | "Medium" | "Hard";
+  servings: number;
+  rating?: number;
+  matchPercentage?: number;
+  tags: string[];
+  ingredients: RecipeIngredient[];
+  missingIngredients: string[];
+  instructions: RecipeStep[];
+};
