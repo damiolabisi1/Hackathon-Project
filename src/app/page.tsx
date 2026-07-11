@@ -42,7 +42,8 @@ export default function HomePage() {
           </div>
 
           <h1 className="max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            Turn what you already have into something delicious.
+            Turn what you <span className="text-green-600">already</span> have
+            into something delicious.
           </h1>
 
           <p className="mt-6 max-w-xl text-lg leading-8 text-muted-foreground">
