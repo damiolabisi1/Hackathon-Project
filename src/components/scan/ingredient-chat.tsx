@@ -1,10 +1,21 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { Bot, Check, Send, Sparkles, UserRound } from "lucide-react";
+import {
+  Bot,
+  Check,
+  LoaderCircle,
+  Send,
+  Sparkles,
+  UserRound,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  sendIngredientMessage,
+  type IngredientChatMessage,
+} from "@/lib/api/ingredients-chat";
 
 type IngredientChatProps = {
   onComplete: (data: {
@@ -13,70 +24,111 @@ type IngredientChatProps = {
   }) => void;
 };
 
-type ChatMessage = {
+type DisplayMessage = {
   id: string;
   role: "assistant" | "user";
   text: string;
 };
 
-const dietaryOptions = ["None", "Vegetarian", "Vegan", "Halal", "Gluten Free"];
+const dietaryOptions = [
+  "None",
+  "Vegetarian",
+  "Vegan",
+  "Halal",
+  "Gluten Free",
+];
 
-export function IngredientChat({ onComplete }: IngredientChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
+export function IngredientChat({
+  onComplete,
+}: IngredientChatProps) {
+  const [messages, setMessages] = useState<DisplayMessage[]>([
     {
       id: crypto.randomUUID(),
       role: "assistant",
-      text: "Hi! Tell me what ingredients you have. You can write something like: rice, chicken, spinach, and onions.",
+      text:
+        "Hi! Tell me what ingredients you currently have. You can mention them naturally, like: I have rice, chicken, spinach, and onions.",
     },
   ]);
 
   const [input, setInput] = useState("");
   const [ingredients, setIngredients] = useState<string[]>([]);
-  const [dietaryPreferences, setDietaryPreferences] = useState<string[]>([]);
-  const [step, setStep] = useState<"ingredients" | "diet">("ingredients");
+  const [dietaryPreferences, setDietaryPreferences] = useState<
+    string[]
+  >([]);
+  const [step, setStep] = useState<"ingredients" | "diet">(
+    "ingredients",
+  );
+  const [isSending, setIsSending] = useState(false);
+  const [readyToContinue, setReadyToContinue] = useState(false);
+  const [error, setError] = useState("");
 
-  function parseIngredients(text: string) {
-    return text
-      .split(/,|\band\b|\n/gi)
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .map((item) => item.charAt(0).toUpperCase() + item.slice(1));
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
 
-    const message = input.trim();
+    const cleanedInput = input.trim();
 
-    if (!message || step !== "ingredients") return;
+    if (
+      !cleanedInput ||
+      step !== "ingredients" ||
+      isSending
+    ) {
+      return;
+    }
 
-    const parsedIngredients = parseIngredients(message);
-    const mergedIngredients = [
-      ...new Set([...ingredients, ...parsedIngredients]),
+    const userMessage: DisplayMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      text: cleanedInput,
+    };
+
+    const updatedDisplayMessages = [
+      ...messages,
+      userMessage,
     ];
 
-    setIngredients(mergedIngredients);
-
-    setMessages((current) => [
-      ...current,
-      {
-        id: crypto.randomUUID(),
-        role: "user",
-        text: message,
-      },
-      {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        text:
-          parsedIngredients.length > 0
-            ? `Great! I found ${parsedIngredients.join(
-                ", ",
-              )}. You can add more ingredients or continue.`
-            : "I could not identify any ingredients. Try separating them with commas.",
-      },
-    ]);
-
+    setMessages(updatedDisplayMessages);
     setInput("");
+    setIsSending(true);
+    setError("");
+
+    try {
+      const apiMessages: IngredientChatMessage[] =
+        updatedDisplayMessages.map((message) => ({
+          role: message.role,
+          content: message.text,
+        }));
+
+      const result = await sendIngredientMessage(
+        apiMessages,
+      );
+
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          text: result.reply,
+        },
+      ]);
+
+      setIngredients(
+        result.ingredients.map(
+          (ingredient) => ingredient.name,
+        ),
+      );
+
+      setReadyToContinue(result.readyToContinue);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Something went wrong while processing your ingredients.",
+      );
+    } finally {
+      setIsSending(false);
+    }
   }
 
   function continueToDiet() {
@@ -84,12 +136,13 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
 
     setStep("diet");
 
-    setMessages((current) => [
-      ...current,
+    setMessages((currentMessages) => [
+      ...currentMessages,
       {
         id: crypto.randomUUID(),
         role: "assistant",
-        text: "Do you have any dietary preferences or restrictions?",
+        text:
+          "Great, I have your ingredient list. Do you have any dietary preferences or restrictions?",
       },
     ]);
   }
@@ -100,14 +153,18 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
       return;
     }
 
-    setDietaryPreferences((current) =>
-      current.includes(option)
-        ? current.filter((item) => item !== option)
-        : [...current, option],
+    setDietaryPreferences((currentOptions) =>
+      currentOptions.includes(option)
+        ? currentOptions.filter(
+            (item) => item !== option,
+          )
+        : [...currentOptions, option],
     );
   }
 
   function handleComplete() {
+    if (ingredients.length === 0) return;
+
     onComplete({
       ingredients,
       dietaryPreferences,
@@ -123,7 +180,10 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
           </span>
 
           <div>
-            <h2 className="font-bold">Ingredient assistant</h2>
+            <h2 className="font-bold">
+              Ingredient assistant
+            </h2>
+
             <p className="text-sm text-muted-foreground">
               Describe what you already have.
             </p>
@@ -136,7 +196,9 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
           <div
             key={message.id}
             className={`flex items-start gap-3 ${
-              message.role === "user" ? "justify-end" : "justify-start"
+              message.role === "user"
+                ? "justify-end"
+                : "justify-start"
             }`}
           >
             {message.role === "assistant" && (
@@ -163,9 +225,30 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
           </div>
         ))}
 
+        {isSending && (
+          <div className="flex items-start gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700">
+              <Bot className="size-4" />
+            </span>
+
+            <div className="flex items-center gap-2 rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+              <LoaderCircle className="size-4 animate-spin" />
+              Thinking...
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
         {ingredients.length > 0 && (
           <div className="rounded-2xl border bg-green-50/40 p-4">
-            <p className="text-sm font-semibold">Ingredients found</p>
+            <p className="text-sm font-semibold">
+              Ingredients found
+            </p>
 
             <div className="mt-3 flex flex-wrap gap-2">
               {ingredients.map((ingredient) => (
@@ -183,7 +266,9 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
 
         {step === "diet" && (
           <div className="rounded-2xl border p-4">
-            <p className="text-sm font-semibold">Dietary preferences</p>
+            <p className="text-sm font-semibold">
+              Dietary preferences
+            </p>
 
             <div className="mt-3 flex flex-wrap gap-2">
               {dietaryOptions.map((option) => {
@@ -214,16 +299,31 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
 
       {step === "ingredients" && (
         <>
-          <form onSubmit={handleSubmit} className="flex gap-3 border-t p-5">
+          <form
+            onSubmit={handleSubmit}
+            className="flex gap-3 border-t p-5"
+          >
             <Input
               value={input}
-              onChange={(event) => setInput(event.target.value)}
-              placeholder="Example: rice, eggs, tomatoes..."
+              onChange={(event) =>
+                setInput(event.target.value)
+              }
+              placeholder="Example: I have rice, eggs and tomatoes..."
               aria-label="Describe your ingredients"
+              disabled={isSending}
             />
 
-            <Button type="submit" size="icon" aria-label="Send message">
-              <Send className="size-4" />
+            <Button
+              type="submit"
+              size="icon"
+              aria-label="Send message"
+              disabled={!input.trim() || isSending}
+            >
+              {isSending ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <Send className="size-4" />
+              )}
             </Button>
           </form>
 
@@ -232,10 +332,14 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
               type="button"
               size="lg"
               className="w-full"
-              disabled={ingredients.length === 0}
+              disabled={
+                ingredients.length === 0 || isSending
+              }
               onClick={continueToDiet}
             >
-              Continue
+              {readyToContinue
+                ? "Continue"
+                : "Continue with ingredients found"}
             </Button>
           </div>
         </>
