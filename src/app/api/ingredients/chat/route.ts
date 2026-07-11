@@ -127,6 +127,31 @@ Do not ask about dietary preferences, cooking time, or servings here. Those are 
   } catch (error) {
     console.error("Ingredient chat failed:", error);
 
+    // A Gemini rate limit is not an app failure — say so plainly instead of
+    // showing a generic error that looks like the app is broken.
+    const detail = error instanceof Error ? error.message : "";
+    const isRateLimited =
+      detail.includes("429") ||
+      detail.includes("RESOURCE_EXHAUSTED") ||
+      detail.toLowerCase().includes("quota");
+
+    if (isRateLimited) {
+      return NextResponse.json(
+        {
+          message:
+            "The AI is rate-limited right now (Gemini free-tier quota). Wait a moment and try again.",
+        },
+        { status: 429 },
+      );
+    }
+
+    if (detail.includes("API key") || detail.includes("API_KEY")) {
+      return NextResponse.json(
+        { message: "The Gemini API key is missing or invalid." },
+        { status: 401 },
+      );
+    }
+
     return NextResponse.json(
       {
         message: "We could not process your ingredients right now.",
