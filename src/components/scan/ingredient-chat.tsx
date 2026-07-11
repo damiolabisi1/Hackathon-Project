@@ -24,10 +24,7 @@ import {
 } from "@/lib/api/ingredients-chat";
 import { useVoice } from "@/lib/sous-chef/use-voice";
 import { useConversation } from "@/lib/sous-chef/use-conversation";
-import {
-  classifyUtterance,
-  generateReply,
-} from "@/lib/sous-chef/conversation";
+import { classifyUtterance, generateReply } from "@/lib/sous-chef/conversation";
 
 type IngredientChatProps = {
   onComplete: (data: {
@@ -271,7 +268,7 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
             </span>
 
             <div>
-              <h2 className="font-bold">Ingredient assistant</h2>
+              <h2 className="font-bold">Sous Chef</h2>
 
               <p className="text-sm text-muted-foreground">
                 Describe what you already have.
@@ -339,7 +336,7 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
         </div>
       </div>
 
-      <div className="flex min-h-[330px] flex-col gap-4 p-5">
+      <div className="flex h-[330px] flex-col gap-4 overflow-y-auto overscroll-contain p-5">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -370,7 +367,6 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
             )}
           </div>
         ))}
-
         {isSending && (
           <div className="flex items-start gap-3">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700">
@@ -383,7 +379,6 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
             </div>
           </div>
         )}
-
         {basicMode && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
             <span className="font-semibold">Basic mode.</span> The Gemini
@@ -391,13 +386,11 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
             local matcher instead of the AI. Voice still works.
           </div>
         )}
-
         {(error || voiceError) && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error || voiceError}
           </div>
         )}
-
         {ingredients.length > 0 && (
           <div className="rounded-2xl border bg-green-50/40 p-4">
             <p className="text-sm font-semibold">Ingredients found</p>
@@ -415,7 +408,6 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
             </div>
           </div>
         )}
-
         {step === "diet" && (
           <div className="rounded-2xl border p-4">
             <p className="text-sm font-semibold">Dietary preferences</p>
@@ -524,7 +516,7 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
             </Button>
           </form>
 
-          <div className="px-5 pb-5">
+          {/* <div className="px-5 pb-5">
             <Button
               type="button"
               size="lg"
@@ -534,7 +526,7 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
             >
               {readyToContinue ? "Continue" : "Continue with ingredients found"}
             </Button>
-          </div>
+          </div> */}
         </>
       )}
 

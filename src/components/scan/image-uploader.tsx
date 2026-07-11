@@ -2,7 +2,14 @@
 
 import Image from "next/image";
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
-import { Camera, ImagePlus, Trash2, Upload } from "lucide-react";
+import {
+  Camera,
+  CameraOff,
+  ImagePlus,
+  RotateCcw,
+  Trash2,
+  Upload,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -15,8 +22,13 @@ export function ImageUploader({
   selectedImage,
   onImageSelect,
 }: ImageUploaderProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -30,6 +42,12 @@ export function ImageUploader({
 
     return () => URL.revokeObjectURL(objectUrl);
   }, [selectedImage]);
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
 
   function validateAndSelect(file?: File) {
     setError("");
@@ -58,27 +76,167 @@ export function ImageUploader({
     validateAndSelect(event.dataTransfer.files?.[0]);
   }
 
+  async function openCamera() {
+    setError("");
+    setCameraLoading(true);
+
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error(
+          "Camera access is unavailable. Open the app through HTTPS or localhost.",
+        );
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: {
+            ideal: "environment",
+          },
+        },
+        audio: false,
+      });
+
+      streamRef.current = stream;
+      setCameraOpen(true);
+
+      requestAnimationFrame(async () => {
+        if (!videoRef.current) return;
+
+        videoRef.current.srcObject = stream;
+
+        try {
+          await videoRef.current.play();
+        } catch {
+          setError("The camera opened, but the video preview could not start.");
+        }
+      });
+    } catch (cameraError) {
+      if (
+        cameraError instanceof DOMException &&
+        cameraError.name === "NotAllowedError"
+      ) {
+        setError(
+          "Camera permission was denied. Allow camera access in your browser settings and try again.",
+        );
+      } else if (
+        cameraError instanceof DOMException &&
+        cameraError.name === "NotFoundError"
+      ) {
+        setError("No camera was found on this device.");
+      } else {
+        setError(
+          cameraError instanceof Error
+            ? cameraError.message
+            : "The camera could not be opened.",
+        );
+      }
+
+      stopCamera();
+    } finally {
+      setCameraLoading(false);
+    }
+  }
+
+  function stopCamera() {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    setCameraOpen(false);
+  }
+
+  function capturePhoto() {
+    const video = videoRef.current;
+
+    if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+      setError("The camera is not ready yet. Wait a moment and try again.");
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      setError("The photo could not be captured.");
+      return;
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          setError("The photo could not be captured.");
+          return;
+        }
+
+        const photo = new File([blob], `ingredients-${Date.now()}.jpg`, {
+          type: "image/jpeg",
+        });
+
+        onImageSelect(photo);
+        stopCamera();
+      },
+      "image/jpeg",
+      0.9,
+    );
+  }
+
   function removeImage() {
     onImageSelect(null);
     setError("");
 
-    if (inputRef.current) {
-      inputRef.current.value = "";
+    if (galleryInputRef.current) {
+      galleryInputRef.current.value = "";
     }
   }
 
   return (
     <div>
       <input
-        ref={inputRef}
+        ref={galleryInputRef}
         type="file"
-        accept="image/png,image/jpeg,image/webp"
-        capture="environment"
+        accept="image/*"
         className="hidden"
         onChange={handleInputChange}
       />
 
-      {!previewUrl ? (
+      {cameraOpen ? (
+        <div className="overflow-hidden rounded-3xl border bg-black p-4 shadow-sm">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-black">
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              className="h-full w-full object-cover"
+            />
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <Button type="button" className="flex-1" onClick={capturePhoto}>
+              <Camera className="size-4" />
+              Capture photo
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 bg-white"
+              onClick={stopCamera}
+            >
+              <CameraOff className="size-4" />
+              Close camera
+            </Button>
+          </div>
+        </div>
+      ) : !previewUrl ? (
         <div
           onDragOver={(event) => event.preventDefault()}
           onDrop={handleDrop}
@@ -93,23 +251,28 @@ export function ImageUploader({
           </h2>
 
           <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-            Drag and drop an image here, or select a clear photo of your fridge,
-            pantry, or ingredients.
+            Take a new photo or choose a clear picture of your fridge, pantry,
+            or ingredients.
           </p>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Button type="button" onClick={() => inputRef.current?.click()}>
-              <Camera className="size-4" />
-              Take or select photo
+            <Button type="button" disabled={cameraLoading} onClick={openCamera}>
+              {cameraLoading ? (
+                <RotateCcw className="size-4 animate-spin" />
+              ) : (
+                <Camera className="size-4" />
+              )}
+
+              {cameraLoading ? "Opening camera..." : "Open camera"}
             </Button>
 
             <Button
               type="button"
               variant="outline"
-              onClick={() => inputRef.current?.click()}
+              onClick={() => galleryInputRef.current?.click()}
             >
               <Upload className="size-4" />
-              Browse files
+              Choose photo
             </Button>
           </div>
 
@@ -152,7 +315,9 @@ export function ImageUploader({
       )}
 
       {error && (
-        <p className="mt-3 text-sm font-medium text-red-600">{error}</p>
+        <p className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+          {error}
+        </p>
       )}
     </div>
   );
