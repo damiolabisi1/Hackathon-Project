@@ -99,10 +99,38 @@ export default function ScanPage() {
 
       <div className="grid gap-8 xl:grid-cols-[1fr_320px]">
         {inputMode === "photo" ? (
-          <ImageUploader
-            selectedImage={selectedImage}
-            onImageSelect={setSelectedImage}
-          />
+          <div>
+            <ImageUploader
+              selectedImage={selectedImage}
+              onImageSelect={setSelectedImage}
+            />
+
+            {error && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="button"
+              size="lg"
+              className="mt-6 w-full"
+              disabled={!selectedImage || isDetecting}
+              onClick={handleDetectIngredients}
+            >
+              {isDetecting ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin" />
+                  Identifying ingredients...
+                </>
+              ) : (
+                <>
+                  Analyze ingredients
+                  <ArrowRight className="size-4" />
+                </>
+              )}
+            </Button>
+          </div>
         ) : (
           <IngredientChat
             onComplete={({ ingredients, dietaryPreferences }) => {
@@ -129,38 +157,6 @@ export default function ScanPage() {
             }}
           />
         )}
-        {/* <div>
-          <ImageUploader
-            selectedImage={selectedImage}
-            onImageSelect={setSelectedImage}
-          />
-
-          {error && (
-            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          <Button
-            type="button"
-            size="lg"
-            className="mt-6 w-full"
-            disabled={!selectedImage || isDetecting}
-            onClick={handleDetectIngredients}
-          >
-            {isDetecting ? (
-              <>
-                <LoaderCircle className="size-4 animate-spin" />
-                Identifying ingredients...
-              </>
-            ) : (
-              <>
-                Analyze ingredients
-                <ArrowRight className="size-4" />
-              </>
-            )}
-          </Button>
-        </div> */}
 
         <aside className="h-fit rounded-3xl border bg-white p-6 shadow-sm">
           <span className="flex size-11 items-center justify-center rounded-xl bg-green-100 text-green-700">
