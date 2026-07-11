@@ -6,11 +6,11 @@ import {
   ChefHat,
   Heart,
   Home,
+  Mic,
   ScanLine,
   Settings,
   UserRound,
   CalendarDays,
-  Sparkles,
 } from "lucide-react";
 
 const navigationItems = [
@@ -25,9 +25,9 @@ const navigationItems = [
     icon: ScanLine,
   },
   {
-    label: "Describe Ingredients",
+    label: "Cook Mode",
     href: "/scan?mode=chat",
-    icon: Sparkles,
+    icon: Mic,
   },
   {
     label: "Saved Recipes",
