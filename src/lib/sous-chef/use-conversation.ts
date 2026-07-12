@@ -29,12 +29,18 @@ const BARGE_SUSTAIN_MS = 300; // sustained speech to interrupt a reply
 
 type Options = {
   onUtterance: (text: string) => Promise<string | null>;
+  /**
+   * Optional playback speed for spoken replies, read at play time. Cook Mode
+   * uses it for "go slower". Omitted elsewhere, so playback stays at 1x.
+   */
+  getPlaybackRate?: () => number;
   onUserText?: (text: string) => void;
   onError?: (message: string) => void;
 };
 
 export function useConversation({
   onUtterance,
+  getPlaybackRate,
   onUserText,
   onError,
 }: Options) {
@@ -48,11 +54,13 @@ export function useConversation({
   }, []);
 
   const onUtteranceRef = useRef(onUtterance);
+  const getPlaybackRateRef = useRef(getPlaybackRate);
   const onUserTextRef = useRef(onUserText);
   useEffect(() => {
     onUtteranceRef.current = onUtterance;
+    getPlaybackRateRef.current = getPlaybackRate;
     onUserTextRef.current = onUserText;
-  }, [onUtterance, onUserText]);
+  }, [onUtterance, onUserText, getPlaybackRate]);
 
   const streamRef = useRef<MediaStream | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
@@ -91,6 +99,7 @@ export function useConversation({
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
+        audio.playbackRate = getPlaybackRateRef.current?.() ?? 1;
         audioRef.current = audio;
         await new Promise<void>((resolve) => {
           resolveSpeakRef.current = resolve;
