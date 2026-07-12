@@ -1,6 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Check,
@@ -8,27 +11,66 @@ import {
   Clock3,
   Heart,
   Play,
-  Star,
   UsersRound,
   X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { mockRecipes } from "@/data/recipes";
+import type { Recipe } from "@/types/recipe";
 
-type RecipePageProps = {
-  params: Promise<{
-    id: string;
-  }>;
-};
+export default function RecipePage() {
+  const params = useParams<{ id: string }>();
 
-export default async function RecipePage({ params }: RecipePageProps) {
-  const { id } = await params;
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const recipe = mockRecipes.find((item) => item.id === id);
+  useEffect(() => {
+    const storedRecipes = sessionStorage.getItem("generatedRecipes");
+
+    if (!storedRecipes) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const recipes: Recipe[] = JSON.parse(storedRecipes);
+
+      const selectedRecipe = recipes.find(
+        (item) => item.id === params.id,
+      );
+
+      setRecipe(selectedRecipe ?? null);
+    } catch {
+      setRecipe(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [params.id]);
+
+  if (isLoading) {
+    return (
+      <section className="mx-auto max-w-7xl px-6 py-20 text-center lg:px-10">
+        <p className="text-muted-foreground">Loading recipe...</p>
+      </section>
+    );
+  }
 
   if (!recipe) {
-    notFound();
+    return (
+      <section className="mx-auto max-w-4xl px-6 py-20 text-center">
+        <h1 className="text-2xl font-bold">Recipe not found</h1>
+
+        <p className="mt-3 text-muted-foreground">
+          This recipe may no longer be available.
+        </p>
+
+        <Button
+          nativeButton={false}
+          className="mt-6"
+          render={<Link href="/recipes">Back to recipes</Link>}
+        />
+      </section>
+    );
   }
 
   return (
@@ -46,8 +88,9 @@ export default async function RecipePage({ params }: RecipePageProps) {
           <div className="relative aspect-[16/10] overflow-hidden rounded-3xl bg-muted shadow-sm">
             <Image
               src={recipe.image}
-              alt={recipe.title}
+              alt={recipe.imageAlt || `Photo representing ${recipe.title}`}
               fill
+              unoptimized
               priority
               className="object-cover"
             />
@@ -95,13 +138,6 @@ export default async function RecipePage({ params }: RecipePageProps) {
                 <UsersRound className="size-4 text-green-600" />
                 {recipe.servings} servings
               </span>
-
-              {recipe.rating && (
-                <span className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-2 text-sm font-medium">
-                  <Star className="size-4 fill-amber-400 text-amber-400" />
-                  {recipe.rating}
-                </span>
-              )}
             </div>
 
             <div className="mt-7 flex flex-wrap gap-2">
@@ -125,7 +161,9 @@ export default async function RecipePage({ params }: RecipePageProps) {
                   What you need
                 </p>
 
-                <h2 className="mt-1 text-2xl font-extrabold">Ingredients</h2>
+                <h2 className="mt-1 text-2xl font-extrabold">
+                  Ingredients
+                </h2>
               </div>
 
               <span className="rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground">
@@ -178,13 +216,20 @@ export default async function RecipePage({ params }: RecipePageProps) {
           </section>
 
           <section className="rounded-3xl border bg-white p-6 shadow-sm">
-            <p className="text-sm font-semibold text-green-700">Step by step</p>
+            <p className="text-sm font-semibold text-green-700">
+              Step by step
+            </p>
 
-            <h2 className="mt-1 text-2xl font-extrabold">Instructions</h2>
+            <h2 className="mt-1 text-2xl font-extrabold">
+              Instructions
+            </h2>
 
             <div className="mt-6 space-y-5">
               {recipe.instructions.map((instruction) => (
-                <div key={instruction.step} className="flex items-start gap-4">
+                <div
+                  key={instruction.step}
+                  className="flex items-start gap-4"
+                >
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-600 text-sm font-bold text-white">
                     {instruction.step}
                   </span>
