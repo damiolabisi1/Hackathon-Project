@@ -29,11 +29,34 @@ export function RecipeCard({ recipe, bestMatch = false }: RecipeCardProps) {
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         <Image
           src={recipe.image}
-          alt={recipe.title}
+          alt={recipe.imageAlt || `Photo representing ${recipe.title}`}
           fill
+          unoptimized
           className="object-cover transition duration-300 group-hover:scale-105"
         />
       </div>
+      {recipe.photographer && recipe.photoUrl && (
+        <p className="px-5 pt-2 text-xs text-muted-foreground">
+          Photo by{" "}
+          <a
+            href={recipe.photographerUrl ?? recipe.photoUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+          >
+            {recipe.photographer}
+          </a>{" "}
+          on{" "}
+          <a
+            href={recipe.photoUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+          >
+            Pexels
+          </a>
+        </p>
+      )}
 
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">

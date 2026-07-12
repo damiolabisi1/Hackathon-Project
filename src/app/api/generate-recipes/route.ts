@@ -219,16 +219,32 @@ Rules:
     const result = JSON.parse(interaction.output_text);
 
     return NextResponse.json(result);
-  } catch (error) {
-    console.error("Recipe generation error:", error);
 
+ } catch (error) {
+  console.error("Recipe generation error:", error);
+
+  const status =
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error
+      ? Number(error.status)
+      : 500;
+
+  if (status === 429) {
     return NextResponse.json(
       {
-        error: "Unable to generate recipes right now.",
+        error:
+          "KitchenAid is receiving many requests right now. Please wait about one minute and try again.",
       },
-      {
-        status: 500,
-      },
+      { status: 429 },
     );
   }
+
+  return NextResponse.json(
+    {
+      error: "Unable to generate recipes right now.",
+    },
+    { status: 500 },
+  );
+}
 }
