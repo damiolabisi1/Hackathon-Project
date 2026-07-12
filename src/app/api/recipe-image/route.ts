@@ -46,10 +46,9 @@ export async function POST(request: Request) {
       ? body.ingredients.slice(0, 4).join(" ")
       : "";
 
-    const query = `${recipeName} ${mainIngredients} plated food`;
+    const query = `${recipeName} ${mainIngredients} plated meal food`;
 
     const searchUrl = new URL("https://api.pexels.com/v1/search");
-
     searchUrl.searchParams.set("query", query);
     searchUrl.searchParams.set("orientation", "landscape");
     searchUrl.searchParams.set("per_page", "5");
@@ -70,7 +69,7 @@ export async function POST(request: Request) {
 
     if (!photo) {
       return NextResponse.json({
-        imageUrl: "/images/recipes/default.jpg",
+        imageUrl: "/images/food.webp",
         imageAlt: `Photo representing ${recipeName}`,
         photographer: null,
         photographerUrl: null,
@@ -93,7 +92,7 @@ export async function POST(request: Request) {
     console.error("Recipe image search failed:", error);
 
     return NextResponse.json({
-      imageUrl: "/images/recipes/default.jpg",
+      imageUrl: "/images/food.webp",
       imageAlt: "A plated meal",
       photographer: null,
       photographerUrl: null,

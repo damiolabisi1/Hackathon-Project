@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, LoaderCircle,Plus, Sparkles, Trash2 } from "lucide-react";
+import { ArrowRight, Plus, Sparkles, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,6 @@ import type {
   DetectedIngredient,
   IngredientDetectionResponse,
 } from "@/types/ingredient";
-import { createId } from "@/lib/create-id";
 
 const dietaryOptions = ["Vegetarian", "Vegan", "Halal", "Gluten Free"];
 
@@ -24,8 +23,6 @@ export default function IngredientsPage() {
   const [selectedDiet, setSelectedDiet] = useState<string[]>([]);
   const [cookingTime, setCookingTime] = useState(30);
   const [servings, setServings] = useState(2);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationError, setGenerationError] = useState("");
 
   useEffect(() => {
     const storedResult = sessionStorage.getItem("detectedIngredients");
@@ -70,7 +67,7 @@ export default function IngredientsPage() {
     setIngredients((currentIngredients) => [
       ...currentIngredients,
       {
-        id: createId(),
+        id: crypto.randomUUID(),
         name: cleanedName,
         confirmed: true,
       },
@@ -88,14 +85,12 @@ export default function IngredientsPage() {
   }
 
   async function handleGenerateRecipes() {
-    if (isGenerating) return;
-
     const confirmedIngredients = ingredients
       .filter((ingredient) => ingredient.confirmed)
       .map((ingredient) => ingredient.name);
 
     if (confirmedIngredients.length === 0) {
-      setGenerationError("Please confirm at least one ingredient.");
+      console.error("No confirmed ingredients selected.");
       return;
     }
 
@@ -105,9 +100,6 @@ export default function IngredientsPage() {
       maximumCookingTime: cookingTime,
       servings,
     };
-
-    setIsGenerating(true);
-    setGenerationError("");
 
     try {
       const response = await fetch("/api/generate-recipes", {
@@ -121,38 +113,42 @@ export default function IngredientsPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error ?? "We could not generate recipes.");
+        throw new Error(
+          result.error ?? "We could not generate recipes.",
+        );
       }
 
       const frontendRecipes = await Promise.all(
         result.recipes.map(
           async (
             recipe: {
-              id: string;
+              id?: string;
               name: string;
-              description: string;
-              prepTimeMinutes: number;
-              cookTimeMinutes: number;
-              difficulty: "easy" | "medium" | "hard";
-              servings: number;
-              ingredients: {
+              description?: string;
+              prepTimeMinutes?: number;
+              cookTimeMinutes?: number;
+              difficulty?: "easy" | "medium" | "hard";
+              servings?: number;
+              ingredients?: {
                 name: string;
                 quantity: string;
                 userAlreadyHas: boolean;
               }[];
-              missingIngredients: string[];
-              steps: {
+              missingIngredients?: string[];
+              steps?: {
                 stepNumber: number;
                 instruction: string;
-                estimatedMinutes: number;
+                estimatedMinutes?: number;
               }[];
-              substitutions: string[];
-              wasteReductionNote: string;
+              substitutions?: string[];
+              wasteReductionNote?: string;
             },
             index: number,
           ) => {
+            const recipeIngredients = recipe.ingredients ?? [];
+
             let imageResult = {
-              imageUrl: "/images/recipes/default.jpg",
+              imageUrl: "/images/food.webp",
               imageAlt: `Photo representing ${recipe.name}`,
               photographer: null as string | null,
               photographerUrl: null as string | null,
@@ -168,7 +164,7 @@ export default function IngredientsPage() {
                 body: JSON.stringify({
                   recipeName: recipe.name,
                   description: recipe.description,
-                  ingredients: recipe.ingredients.map(
+                  ingredients: recipeIngredients.map(
                     (ingredient) => ingredient.name,
                   ),
                 }),
@@ -179,7 +175,7 @@ export default function IngredientsPage() {
               }
             } catch (imageError) {
               console.error(
-                `Could not find image for ${recipe.name}:`,
+                `Could not find an image for ${recipe.name}:`,
                 imageError,
               );
             }
@@ -188,54 +184,40 @@ export default function IngredientsPage() {
               id: recipe.id || `generated-recipe-${index + 1}`,
               title: recipe.name,
               description: recipe.description ?? "",
-
               image:
                 imageResult.imageUrl ??
-                "/images/recipes/default.jpg",
-
+                "/images/food.webp",
               imageAlt:
                 imageResult.imageAlt ??
                 `Photo representing ${recipe.name}`,
-
               photographer: imageResult.photographer,
               photographerUrl: imageResult.photographerUrl,
               photoUrl: imageResult.photoUrl,
-
               cookingTimeMinutes:
                 (recipe.prepTimeMinutes ?? 0) +
                 (recipe.cookTimeMinutes ?? 0),
-
               difficulty:
                 recipe.difficulty === "hard"
                   ? "Hard"
                   : recipe.difficulty === "medium"
                     ? "Medium"
                     : "Easy",
-
               servings: recipe.servings ?? servings,
               matchPercentage: Math.max(85, 96 - index * 5),
-
               tags: [
                 index === 0 ? "Best match" : "AI generated",
                 ...selectedDiet,
               ],
-
-              ingredients: (recipe.ingredients ?? []).map(
-                (ingredient) => ({
-                  name: ingredient.name,
-                  amount: ingredient.quantity,
-                  available: ingredient.userAlreadyHas,
-                }),
-              ),
-
-              missingIngredients:
-                recipe.missingIngredients ?? [],
-
+              ingredients: recipeIngredients.map((ingredient) => ({
+                name: ingredient.name,
+                amount: ingredient.quantity,
+                available: ingredient.userAlreadyHas,
+              })),
+              missingIngredients: recipe.missingIngredients ?? [],
               instructions: (recipe.steps ?? []).map((step) => ({
                 step: step.stepNumber,
                 instruction: step.instruction,
               })),
-
               substitutions: recipe.substitutions ?? [],
               wasteReductionNote: recipe.wasteReductionNote ?? "",
             };
@@ -250,13 +232,7 @@ export default function IngredientsPage() {
 
       router.push("/recipes");
     } catch (error) {
-      setGenerationError(
-        error instanceof Error
-          ? error.message
-          : "Recipe generation failed.",
-      );
-    } finally {
-      setIsGenerating(false);
+      console.error("Recipe generation failed:", error);
     }
   }
 
@@ -414,28 +390,14 @@ export default function IngredientsPage() {
             size="lg"
             className="mt-7 w-full"
             disabled={
-              isGenerating ||
-              ingredients.filter((ingredient) => ingredient.confirmed).length === 0
+              ingredients.filter((ingredient) => ingredient.confirmed)
+                .length === 0
             }
             onClick={handleGenerateRecipes}
           >
-            {isGenerating ? (
-              <>
-                <LoaderCircle className="size-4 animate-spin" />
-                Generating recipes...
-              </>
-            ) : (
-              <>
-                Generate recipes
-                <ArrowRight className="size-4" />
-              </>
-            )}
+            Generate recipes
+            <ArrowRight className="size-4" />
           </Button>
-          {generationError && (
-            <p className="mt-3 text-sm text-red-600">
-              {generationError}
-            </p>
-          )}
         </aside>
       </div>
     </section>

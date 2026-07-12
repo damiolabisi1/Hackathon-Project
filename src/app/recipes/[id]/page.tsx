@@ -10,41 +10,57 @@ import {
   ChefHat,
   Clock3,
   Play,
+  Star,
   UsersRound,
   X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { SaveRecipeButton } from "@/components/recipes/save-recipe-button";
+import { fetchSavedRecipes } from "@/lib/api/saved-recipes";
 import type { Recipe } from "@/types/recipe";
 
 export default function RecipePage() {
   const params = useParams<{ id: string }>();
-
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedRecipes = sessionStorage.getItem("generatedRecipes");
+    let cancelled = false;
 
-    if (!storedRecipes) {
-      setIsLoading(false);
-      return;
+    async function loadRecipe() {
+      try {
+        const storedRecipes = sessionStorage.getItem("generatedRecipes");
+
+        if (storedRecipes) {
+          const recipes = JSON.parse(storedRecipes) as Recipe[];
+          const generatedRecipe = recipes.find((item) => item.id === params.id);
+
+          if (generatedRecipe) {
+            if (!cancelled) setRecipe(generatedRecipe);
+            return;
+          }
+        }
+
+        const savedRecipes = await fetchSavedRecipes();
+        const savedRecipe = savedRecipes.find((item) => item.id === params.id);
+
+        if (!cancelled) {
+          setRecipe(savedRecipe ?? null);
+        }
+      } catch (error) {
+        console.error("Could not load recipe:", error);
+        if (!cancelled) setRecipe(null);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
     }
 
-    try {
-      const recipes: Recipe[] = JSON.parse(storedRecipes);
+    void loadRecipe();
 
-      const selectedRecipe = recipes.find(
-        (item) => item.id === params.id,
-      );
-
-      setRecipe(selectedRecipe ?? null);
-    } catch {
-      setRecipe(null);
-    } finally {
-      setIsLoading(false);
-    }
+    return () => {
+      cancelled = true;
+    };
   }, [params.id]);
 
   if (isLoading) {
@@ -59,11 +75,9 @@ export default function RecipePage() {
     return (
       <section className="mx-auto max-w-4xl px-6 py-20 text-center">
         <h1 className="text-2xl font-bold">Recipe not found</h1>
-
         <p className="mt-3 text-muted-foreground">
           This recipe may no longer be available.
         </p>
-
         <Button
           nativeButton={false}
           className="mt-6"
@@ -88,10 +102,7 @@ export default function RecipePage() {
           <div className="relative aspect-[16/10] overflow-hidden rounded-3xl bg-muted shadow-sm">
             <Image
               src={recipe.image}
-              alt={
-                recipe.imageAlt ||
-                `Photo representing ${recipe.title}`
-              }
+              alt={recipe.imageAlt || `Photo representing ${recipe.title}`}
               fill
               unoptimized
               priority
@@ -158,6 +169,13 @@ export default function RecipePage() {
                 <UsersRound className="size-4 text-green-600" />
                 {recipe.servings} servings
               </span>
+
+              {recipe.rating && (
+                <span className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-2 text-sm font-medium">
+                  <Star className="size-4 fill-amber-400 text-amber-400" />
+                  {recipe.rating}
+                </span>
+              )}
             </div>
 
             <div className="mt-7 flex flex-wrap gap-2">
@@ -175,9 +193,18 @@ export default function RecipePage() {
 
         <div className="space-y-8">
           <section className="rounded-3xl border bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-extrabold">
-              Ingredients
-            </h2>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-green-700">
+                  What you need
+                </p>
+                <h2 className="mt-1 text-2xl font-extrabold">Ingredients</h2>
+              </div>
+
+              <span className="rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground">
+                {recipe.ingredients.length} items
+              </span>
+            </div>
 
             <div className="mt-6 divide-y">
               {recipe.ingredients.map((ingredient) => (
@@ -200,10 +227,7 @@ export default function RecipePage() {
                   </span>
 
                   <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
-                    <p className="font-semibold">
-                      {ingredient.name}
-                    </p>
-
+                    <p className="font-semibold">{ingredient.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {ingredient.amount}
                     </p>
@@ -211,19 +235,26 @@ export default function RecipePage() {
                 </div>
               ))}
             </div>
+
+            {recipe.missingIngredients.length > 0 && (
+              <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 p-4">
+                <p className="text-sm font-bold text-red-700">
+                  Missing ingredients
+                </p>
+                <p className="mt-1 text-sm leading-6 text-red-600">
+                  {recipe.missingIngredients.join(", ")}
+                </p>
+              </div>
+            )}
           </section>
 
           <section className="rounded-3xl border bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-extrabold">
-              Instructions
-            </h2>
+            <p className="text-sm font-semibold text-green-700">Step by step</p>
+            <h2 className="mt-1 text-2xl font-extrabold">Instructions</h2>
 
             <div className="mt-6 space-y-5">
               {recipe.instructions.map((instruction) => (
-                <div
-                  key={instruction.step}
-                  className="flex items-start gap-4"
-                >
+                <div key={instruction.step} className="flex items-start gap-4">
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-600 text-sm font-bold text-white">
                     {instruction.step}
                   </span>

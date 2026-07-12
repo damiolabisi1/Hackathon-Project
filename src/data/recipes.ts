@@ -7,6 +7,7 @@ export const mockRecipes: Recipe[] = [
     description:
       "A simple one-pot rice dish made with tomatoes, spinach, garlic, and pantry seasonings.",
     image: "/images/tomato-rice-bowl.jpg",
+    imageAlt: "Photo representing tomato rice bowl",
     cookingTimeMinutes: 25,
     difficulty: "Easy",
     servings: 2,
@@ -35,6 +36,7 @@ export const mockRecipes: Recipe[] = [
     title: "Spinach & Egg Rice",
     description: "A quick rice bowl with cooked spinach and seasoned eggs.",
     image: "/images/spinach-egg-rice.jpg",
+    imageAlt: "Photo representing spinach egg rice",
     cookingTimeMinutes: 20,
     difficulty: "Easy",
     servings: 2,
@@ -61,6 +63,7 @@ export const mockRecipes: Recipe[] = [
     description:
       "A colourful fried rice recipe using vegetables you already have.",
     image: "/images/vegetable-fried-rice.jpg",
+    imageAlt: "Photo representing vegetable fried rice",
     cookingTimeMinutes: 30,
     difficulty: "Medium",
     servings: 3,
@@ -87,6 +90,7 @@ export const mockRecipes: Recipe[] = [
     description:
       "A comforting tomato pasta made with garlic and simple seasonings.",
     image: "/images/tomato-pasta.jpg",
+    imageAlt: "Photo representing tomato pasta",
     cookingTimeMinutes: 25,
     difficulty: "Easy",
     servings: 2,

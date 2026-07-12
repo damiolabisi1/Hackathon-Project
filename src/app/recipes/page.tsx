@@ -32,7 +32,6 @@ export default function RecipesPage() {
       setShowingSamples(true);
     } catch (error) {
       console.error("Could not load recipes:", error);
-
       setRecipes(mockRecipes);
       setShowingSamples(true);
     } finally {
@@ -44,10 +43,7 @@ export default function RecipesPage() {
     return (
       <section className="mx-auto max-w-6xl px-6 py-20 text-center lg:px-10">
         <Sparkles className="mx-auto size-8 animate-pulse text-green-600" />
-
-        <h1 className="mt-4 text-2xl font-bold">
-          Loading your recipes...
-        </h1>
+        <h1 className="mt-4 text-2xl font-bold">Loading your recipes...</h1>
       </section>
     );
   }
@@ -82,11 +78,7 @@ export default function RecipesPage() {
           <Button
             nativeButton={false}
             className="shrink-0"
-            render={
-              <Link href="/scan?mode=chat">
-                Add my ingredients
-              </Link>
-            }
+            render={<Link href="/scan?mode=chat">Add my ingredients</Link>}
           />
         </div>
       )}
@@ -104,23 +96,14 @@ export default function RecipesPage() {
       ) : (
         <div className="mt-8 rounded-3xl border border-dashed p-12 text-center">
           <Sparkles className="mx-auto size-8 text-green-600" />
-
-          <h2 className="mt-4 text-xl font-bold">
-            No recipes found
-          </h2>
-
+          <h2 className="mt-4 text-xl font-bold">No recipes found</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Add your ingredients and generate recipes first.
           </p>
-
           <Button
             nativeButton={false}
             className="mt-6"
-            render={
-              <Link href="/scan">
-                Add ingredients
-              </Link>
-            }
+            render={<Link href="/scan">Add ingredients</Link>}
           />
         </div>
       )}

@@ -3,53 +3,43 @@
 import { useEffect, useState } from "react";
 import { Heart, LoaderCircle } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import type { Recipe } from "@/types/recipe";
 import {
-  getSavedRecipeIds,
-  invalidateSavedRecipeIds,
+  fetchSavedRecipes,
   saveRecipe,
   unsaveRecipe,
 } from "@/lib/api/saved-recipes";
 
-type SaveRecipeButtonProps = {
-  recipe: Recipe;
-  /** Position/size overrides — the card heart is smaller than the detail one. */
-  className?: string;
-  iconClassName?: string;
-};
-
 /**
- * The heart on a recipe. Persists it to MongoDB so it appears on /saved.
- * Used on both the recipe cards and the recipe detail page.
+ * The heart on a recipe. Persists the recipe to MongoDB so it shows up on
+ * /saved. Keeps the original floating-overlay styling.
  */
-export function SaveRecipeButton({
-  recipe,
-  className,
-  iconClassName,
-}: SaveRecipeButtonProps) {
+export function SaveRecipeButton({ recipe }: { recipe: Recipe }) {
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  // Reflect what's already stored. All hearts on the page share one request.
+  // Reflect whatever is already stored.
   useEffect(() => {
     let cancelled = false;
 
-    getSavedRecipeIds().then((ids) => {
-      if (!cancelled) setSaved(ids.has(recipe.id));
-    });
+    fetchSavedRecipes()
+      .then((recipes) => {
+        if (!cancelled) {
+          setSaved(recipes.some((item) => item.id === recipe.id));
+        }
+      })
+      .catch(() => {
+        // No database configured yet — leave the heart unfilled rather than
+        // breaking the page.
+      });
 
     return () => {
       cancelled = true;
     };
   }, [recipe.id]);
 
-  async function toggle(event: React.MouseEvent) {
-    // The card is wrapped in a link to the recipe — don't navigate on save.
-    event.preventDefault();
-    event.stopPropagation();
-
+  async function toggle() {
     setBusy(true);
     setError("");
 
@@ -61,7 +51,6 @@ export function SaveRecipeButton({
         await saveRecipe(recipe);
         setSaved(true);
       }
-      invalidateSavedRecipeIds();
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Could not save the recipe.",
@@ -80,23 +69,19 @@ export function SaveRecipeButton({
         aria-pressed={saved}
         aria-label={saved ? `Remove ${recipe.title}` : `Save ${recipe.title}`}
         title={saved ? "Saved — click to remove" : "Save recipe"}
-        className={cn(
-          "absolute top-4 right-4 z-20 flex size-11 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur transition hover:text-red-500 disabled:opacity-60",
-          saved ? "text-red-500" : "text-gray-700",
-          className,
-        )}
+        className={`absolute top-4 right-4 flex size-11 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur transition hover:text-red-500 disabled:opacity-60 ${
+          saved ? "text-red-500" : "text-gray-700"
+        }`}
       >
         {busy ? (
-          <LoaderCircle className={cn("size-5 animate-spin", iconClassName)} />
+          <LoaderCircle className="size-5 animate-spin" />
         ) : (
-          <Heart
-            className={cn("size-5", saved && "fill-current", iconClassName)}
-          />
+          <Heart className={`size-5 ${saved ? "fill-current" : ""}`} />
         )}
       </button>
 
       {error && (
-        <p className="absolute right-3 bottom-3 z-20 rounded-lg bg-red-50 px-2 py-1 text-xs text-red-700 shadow-sm">
+        <p className="absolute right-4 bottom-4 rounded-lg bg-red-50 px-3 py-1.5 text-xs text-red-700 shadow-sm">
           {error}
         </p>
       )}
