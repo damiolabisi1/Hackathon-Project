@@ -25,6 +25,7 @@ import {
 import { useVoice } from "@/lib/sous-chef/use-voice";
 import { useConversation } from "@/lib/sous-chef/use-conversation";
 import { classifyUtterance, generateReply } from "@/lib/sous-chef/conversation";
+import { createId } from "@/lib/create-id";
 
 type IngredientChatProps = {
   onComplete: (data: {
@@ -54,7 +55,7 @@ const dietaryOptions = ["None", "Vegetarian", "Vegan", "Halal", "Gluten Free"];
 export function IngredientChat({ onComplete }: IngredientChatProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([
     {
-      id: crypto.randomUUID(),
+      id: createId(),
       role: "assistant",
       text: "Hi! Tell me what ingredients you currently have. You can mention them naturally, like: I have rice, chicken, spinach, and onions.",
     },
@@ -109,7 +110,7 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
     }
 
     const userMessage: DisplayMessage = {
-      id: crypto.randomUUID(),
+      id: createId(),
       role: "user",
       text: cleaned,
     };
@@ -133,7 +134,7 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
       setMessages((current) => [
         ...current,
         {
-          id: crypto.randomUUID(),
+          id: createId(),
           role: "assistant",
           text: result.reply,
         },
@@ -168,7 +169,7 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
         setMessages((current) => [
           ...current,
           {
-            id: crypto.randomUUID(),
+            id: createId(),
             role: "assistant",
             text: reply,
           },
@@ -229,7 +230,7 @@ export function IngredientChat({ onComplete }: IngredientChatProps) {
     setMessages((current) => [
       ...current,
       {
-        id: crypto.randomUUID(),
+        id: createId(),
         role: "assistant",
         text: "Great, I have your ingredient list. Do you have any dietary preferences or restrictions?",
       },

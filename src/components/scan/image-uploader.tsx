@@ -6,7 +6,7 @@ import {
   Camera,
   CameraOff,
   ImagePlus,
-  RotateCcw,
+  LoaderCircle,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -22,6 +22,7 @@ export function ImageUploader({
   selectedImage,
   onImageSelect,
 }: ImageUploaderProps) {
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -43,11 +44,57 @@ export function ImageUploader({
     return () => URL.revokeObjectURL(objectUrl);
   }, [selectedImage]);
 
+  /*
+   * Attach the camera stream only after React has rendered the video element.
+   * This fixes the black camera preview.
+   */
+  useEffect(() => {
+    if (!cameraOpen || !videoRef.current || !streamRef.current) {
+      return;
+    }
+
+    const video = videoRef.current;
+
+    video.srcObject = streamRef.current;
+
+    async function startVideo() {
+      try {
+        await video.play();
+      } catch {
+        setError(
+          "The camera opened, but the preview could not start. Check your browser camera permissions.",
+        );
+      }
+    }
+
+    video.addEventListener("loadedmetadata", startVideo);
+
+    if (video.readyState >= 1) {
+      void startVideo();
+    }
+
+    return () => {
+      video.removeEventListener("loadedmetadata", startVideo);
+    };
+  }, [cameraOpen]);
+
   useEffect(() => {
     return () => {
-      stopCamera();
+      stopCameraStream();
     };
   }, []);
+
+  function stopCameraStream() {
+    streamRef.current?.getTracks().forEach((track) => {
+      track.stop();
+    });
+
+    streamRef.current = null;
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }
 
   function validateAndSelect(file?: File) {
     setError("");
@@ -55,7 +102,7 @@ export function ImageUploader({
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError("Please upload an image file.");
+      setError("Please select an image file.");
       return;
     }
 
@@ -81,70 +128,78 @@ export function ImageUploader({
     setCameraLoading(true);
 
     try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error(
-          "Camera access is unavailable. Open the app through HTTPS or localhost.",
-        );
+      /*
+       * Live camera requires HTTPS or localhost.
+       * On an insecure phone connection, use the native camera input.
+       */
+      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+        cameraInputRef.current?.click();
+        return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: {
-            ideal: "environment",
+      stopCameraStream();
+
+      /*
+       * First try the rear camera where available.
+       */
+      let stream: MediaStream;
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: {
+              ideal: "environment",
+            },
           },
-        },
-        audio: false,
-      });
+          audio: false,
+        });
+      } catch {
+        /*
+         * Some laptops do not support facingMode.
+         * Retry with any available webcam.
+         */
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+      }
 
       streamRef.current = stream;
       setCameraOpen(true);
-
-      requestAnimationFrame(async () => {
-        if (!videoRef.current) return;
-
-        videoRef.current.srcObject = stream;
-
-        try {
-          await videoRef.current.play();
-        } catch {
-          setError("The camera opened, but the video preview could not start.");
-        }
-      });
-    } catch (cameraError) {
+    } catch (caughtError) {
       if (
-        cameraError instanceof DOMException &&
-        cameraError.name === "NotAllowedError"
+        caughtError instanceof DOMException &&
+        caughtError.name === "NotAllowedError"
       ) {
         setError(
-          "Camera permission was denied. Allow camera access in your browser settings and try again.",
+          "Camera permission was denied. Allow camera access in your browser settings, then try again.",
         );
       } else if (
-        cameraError instanceof DOMException &&
-        cameraError.name === "NotFoundError"
+        caughtError instanceof DOMException &&
+        caughtError.name === "NotFoundError"
       ) {
         setError("No camera was found on this device.");
+      } else if (
+        caughtError instanceof DOMException &&
+        caughtError.name === "NotReadableError"
+      ) {
+        setError(
+          "The camera is already being used by another application. Close FaceTime, Zoom, or other camera apps and try again.",
+        );
       } else {
         setError(
-          cameraError instanceof Error
-            ? cameraError.message
+          caughtError instanceof Error
+            ? caughtError.message
             : "The camera could not be opened.",
         );
       }
-
-      stopCamera();
     } finally {
       setCameraLoading(false);
     }
   }
 
-  function stopCamera() {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-
+  function closeCamera() {
+    stopCameraStream();
     setCameraOpen(false);
   }
 
@@ -152,11 +207,12 @@ export function ImageUploader({
     const video = videoRef.current;
 
     if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
-      setError("The camera is not ready yet. Wait a moment and try again.");
+      setError("The camera is still loading. Wait a moment and try again.");
       return;
     }
 
     const canvas = document.createElement("canvas");
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
@@ -176,12 +232,12 @@ export function ImageUploader({
           return;
         }
 
-        const photo = new File([blob], `ingredients-${Date.now()}.jpg`, {
+        const file = new File([blob], `ingredients-${Date.now()}.jpg`, {
           type: "image/jpeg",
         });
 
-        onImageSelect(photo);
-        stopCamera();
+        onImageSelect(file);
+        closeCamera();
       },
       "image/jpeg",
       0.9,
@@ -189,8 +245,13 @@ export function ImageUploader({
   }
 
   function removeImage() {
+    closeCamera();
     onImageSelect(null);
     setError("");
+
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = "";
+    }
 
     if (galleryInputRef.current) {
       galleryInputRef.current.value = "";
@@ -199,24 +260,40 @@ export function ImageUploader({
 
   return (
     <div>
+      {/* Native phone camera fallback */}
       <input
+        id="ingredient-camera-input"
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        onChange={handleInputChange}
+      />
+
+      {/* Gallery and desktop file picker */}
+      <input
+        id="ingredient-gallery-input"
         ref={galleryInputRef}
         type="file"
         accept="image/*"
-        className="hidden"
+        className="sr-only"
         onChange={handleInputChange}
       />
 
       {cameraOpen ? (
-        <div className="overflow-hidden rounded-3xl border bg-black p-4 shadow-sm">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-black">
+        <div className="overflow-hidden rounded-3xl border bg-white p-4 shadow-sm">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-gray-950">
             <video
               ref={videoRef}
               autoPlay
               muted
               playsInline
+              disablePictureInPicture
               className="h-full w-full object-cover"
             />
+
+            <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10" />
           </div>
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -228,8 +305,8 @@ export function ImageUploader({
             <Button
               type="button"
               variant="outline"
-              className="flex-1 bg-white"
-              onClick={stopCamera}
+              className="flex-1"
+              onClick={closeCamera}
             >
               <CameraOff className="size-4" />
               Close camera
@@ -240,7 +317,7 @@ export function ImageUploader({
         <div
           onDragOver={(event) => event.preventDefault()}
           onDrop={handleDrop}
-          className="flex min-h-[360px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-green-200 bg-green-50/40 px-8 py-12 text-center"
+          className="flex min-h-[360px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-green-200 bg-green-50/40 px-6 py-12 text-center"
         >
           <span className="flex size-16 items-center justify-center rounded-2xl bg-green-100 text-green-700">
             <ImagePlus className="size-8" />
@@ -255,25 +332,29 @@ export function ImageUploader({
             or ingredients.
           </p>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Button type="button" disabled={cameraLoading} onClick={openCamera}>
+          <div className="mt-6 flex w-full max-w-md flex-col gap-3 sm:flex-row">
+            <Button
+              type="button"
+              className="flex-1"
+              disabled={cameraLoading}
+              onClick={openCamera}
+            >
               {cameraLoading ? (
-                <RotateCcw className="size-4 animate-spin" />
+                <LoaderCircle className="size-4 animate-spin" />
               ) : (
                 <Camera className="size-4" />
               )}
 
-              {cameraLoading ? "Opening camera..." : "Open camera"}
+              {cameraLoading ? "Opening camera..." : "Take photo"}
             </Button>
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => galleryInputRef.current?.click()}
+            <label
+              htmlFor="ingredient-gallery-input"
+              className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border bg-white px-4 text-sm font-medium shadow-xs transition hover:bg-muted"
             >
               <Upload className="size-4" />
               Choose photo
-            </Button>
+            </label>
           </div>
 
           <p className="mt-4 text-xs text-muted-foreground">

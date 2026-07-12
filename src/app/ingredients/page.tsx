@@ -10,6 +10,7 @@ import type {
   DetectedIngredient,
   IngredientDetectionResponse,
 } from "@/types/ingredient";
+import { createId } from "@/lib/create-id";
 
 const dietaryOptions = ["Vegetarian", "Vegan", "Halal", "Gluten Free"];
 
@@ -67,7 +68,7 @@ export default function IngredientsPage() {
     setIngredients((currentIngredients) => [
       ...currentIngredients,
       {
-        id: crypto.randomUUID(),
+        id: createId(),
         name: cleanedName,
         confirmed: true,
       },
@@ -108,14 +109,12 @@ export default function IngredientsPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(requestData),
-    });
+      });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          result.error ?? "We could not generate recipes.",
-        );
+        throw new Error(result.error ?? "We could not generate recipes.");
       }
 
       sessionStorage.setItem(
