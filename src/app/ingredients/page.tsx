@@ -110,9 +110,7 @@ export default function IngredientsPage() {
     setGenerationError("");
 
     try {
-      // Real recipes from Spoonacular, personalised by Gemini.
-      // (/api/generate-recipes still exists as the pure-Gemini fallback.)
-      const response = await fetch("/api/recipes/find", {
+      const response = await fetch("/api/generate-recipes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -249,13 +247,6 @@ export default function IngredientsPage() {
         "generatedRecipes",
         JSON.stringify(frontendRecipes),
       );
-
-      // Present when Gemini could not personalise (e.g. rate limited).
-      if (result.notice) {
-        sessionStorage.setItem("recipesNotice", result.notice);
-      } else {
-        sessionStorage.removeItem("recipesNotice");
-      }
 
       router.push("/recipes");
     } catch (error) {

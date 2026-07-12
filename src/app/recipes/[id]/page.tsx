@@ -16,8 +16,16 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { SaveRecipeButton } from "@/components/recipes/save-recipe-button";
-import { mockRecipes } from "@/data/recipes";
-import { getCachedRecipe } from "@/lib/db/recipes";
+import type { Recipe } from "@/types/recipe";
+
+export default function RecipePage() {
+  const params = useParams<{ id: string }>();
+
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const storedRecipes = sessionStorage.getItem("generatedRecipes");
 
     if (!storedRecipes) {
       setIsLoading(false);
@@ -27,10 +35,25 @@ import { getCachedRecipe } from "@/lib/db/recipes";
     try {
       const recipes: Recipe[] = JSON.parse(storedRecipes);
 
-  // Recipes found for this user (Spoonacular) are cached in MongoDB; the demo
-  // recipes are bundled. Check both so either kind opens.
-  const recipe =
-    (await getCachedRecipe(id)) ?? mockRecipes.find((item) => item.id === id);
+      const selectedRecipe = recipes.find(
+        (item) => item.id === params.id,
+      );
+
+      setRecipe(selectedRecipe ?? null);
+    } catch {
+      setRecipe(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [params.id]);
+
+  if (isLoading) {
+    return (
+      <section className="mx-auto max-w-4xl px-6 py-20 text-center">
+        <p className="text-muted-foreground">Loading recipe...</p>
+      </section>
+    );
+  }
 
   if (!recipe) {
     return (
@@ -65,7 +88,10 @@ import { getCachedRecipe } from "@/lib/db/recipes";
           <div className="relative aspect-[16/10] overflow-hidden rounded-3xl bg-muted shadow-sm">
             <Image
               src={recipe.image}
-              alt={recipe.imageAlt || `Photo representing ${recipe.title}`}
+              alt={
+                recipe.imageAlt ||
+                `Photo representing ${recipe.title}`
+              }
               fill
               unoptimized
               priority
@@ -74,6 +100,29 @@ import { getCachedRecipe } from "@/lib/db/recipes";
 
             <SaveRecipeButton recipe={recipe} />
           </div>
+
+          {recipe.photographer && recipe.photoUrl && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Photo by{" "}
+              <a
+                href={recipe.photographerUrl ?? recipe.photoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                {recipe.photographer}
+              </a>{" "}
+              on{" "}
+              <a
+                href={recipe.photoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                Pexels
+              </a>
+            </p>
+          )}
 
           <div className="mt-7">
             <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
@@ -126,26 +175,14 @@ import { getCachedRecipe } from "@/lib/db/recipes";
 
         <div className="space-y-8">
           <section className="rounded-3xl border bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-green-700">
-                  What you need
-                </p>
-
-                <h2 className="mt-1 text-2xl font-extrabold">
-                  Ingredients
-                </h2>
-              </div>
-
-              <span className="rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground">
-                {recipe.ingredients.length} items
-              </span>
-            </div>
+            <h2 className="text-2xl font-extrabold">
+              Ingredients
+            </h2>
 
             <div className="mt-6 divide-y">
               {recipe.ingredients.map((ingredient) => (
                 <div
-                  key={ingredient.name}
+                  key={`${ingredient.name}-${ingredient.amount}`}
                   className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
                 >
                   <span
@@ -163,7 +200,9 @@ import { getCachedRecipe } from "@/lib/db/recipes";
                   </span>
 
                   <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
-                    <p className="font-semibold">{ingredient.name}</p>
+                    <p className="font-semibold">
+                      {ingredient.name}
+                    </p>
 
                     <p className="text-sm text-muted-foreground">
                       {ingredient.amount}
@@ -172,26 +211,10 @@ import { getCachedRecipe } from "@/lib/db/recipes";
                 </div>
               ))}
             </div>
-
-            {recipe.missingIngredients.length > 0 && (
-              <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 p-4">
-                <p className="text-sm font-bold text-red-700">
-                  Missing ingredients
-                </p>
-
-                <p className="mt-1 text-sm leading-6 text-red-600">
-                  {recipe.missingIngredients.join(", ")}
-                </p>
-              </div>
-            )}
           </section>
 
           <section className="rounded-3xl border bg-white p-6 shadow-sm">
-            <p className="text-sm font-semibold text-green-700">
-              Step by step
-            </p>
-
-            <h2 className="mt-1 text-2xl font-extrabold">
+            <h2 className="text-2xl font-extrabold">
               Instructions
             </h2>
 
