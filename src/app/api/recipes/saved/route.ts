@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { Recipe } from "@/types/recipe";
-import { isDbConfigured } from "@/lib/db/mongodb";
+import { describeDbError, isDbConfigured } from "@/lib/db/mongodb";
 import {
   deleteSavedRecipe,
   listSavedRecipes,
@@ -27,8 +27,10 @@ function dbMissing() {
 
 function failed(error: unknown, action: string) {
   console.error(`Saved recipes (${action}) failed:`, error);
-  const message = error instanceof Error ? error.message : `Could not ${action}.`;
-  return NextResponse.json({ message }, { status: 500 });
+
+  // Unreachable database: a 503 with an actionable message, not a wall of TLS
+  // internals — and never an endless spinner.
+  return NextResponse.json({ message: describeDbError(error) }, { status: 503 });
 }
 
 export async function GET() {
