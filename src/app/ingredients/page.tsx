@@ -10,6 +10,7 @@ import type {
   DetectedIngredient,
   IngredientDetectionResponse,
 } from "@/types/ingredient";
+import { createId } from "@/lib/create-id";
 
 const dietaryOptions = ["Vegetarian", "Vegan", "Halal", "Gluten Free"];
 
@@ -69,7 +70,7 @@ export default function IngredientsPage() {
     setIngredients((currentIngredients) => [
       ...currentIngredients,
       {
-        id: crypto.randomUUID(),
+        id: createId(),
         name: cleanedName,
         confirmed: true,
       },
@@ -109,7 +110,9 @@ export default function IngredientsPage() {
     setGenerationError("");
 
     try {
-      const response = await fetch("/api/generate-recipes", {
+      // Real recipes from Spoonacular, personalised by Gemini.
+      // (/api/generate-recipes still exists as the pure-Gemini fallback.)
+      const response = await fetch("/api/recipes/find", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -120,9 +123,7 @@ export default function IngredientsPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          result.error ?? "We could not generate recipes.",
-        );
+        throw new Error(result.error ?? "We could not generate recipes.");
       }
 
       const frontendRecipes = await Promise.all(
@@ -248,6 +249,13 @@ export default function IngredientsPage() {
         "generatedRecipes",
         JSON.stringify(frontendRecipes),
       );
+
+      // Present when Gemini could not personalise (e.g. rate limited).
+      if (result.notice) {
+        sessionStorage.setItem("recipesNotice", result.notice);
+      } else {
+        sessionStorage.removeItem("recipesNotice");
+      }
 
       router.push("/recipes");
     } catch (error) {

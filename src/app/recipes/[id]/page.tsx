@@ -9,23 +9,15 @@ import {
   Check,
   ChefHat,
   Clock3,
-  Heart,
   Play,
   UsersRound,
   X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import type { Recipe } from "@/types/recipe";
-
-export default function RecipePage() {
-  const params = useParams<{ id: string }>();
-
-  const [recipe, setRecipe] = useState<Recipe | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const storedRecipes = sessionStorage.getItem("generatedRecipes");
+import { SaveRecipeButton } from "@/components/recipes/save-recipe-button";
+import { mockRecipes } from "@/data/recipes";
+import { getCachedRecipe } from "@/lib/db/recipes";
 
     //if stored recipes is null, set isLoading to false and return
     if (!storedRecipes) {
@@ -36,25 +28,10 @@ export default function RecipePage() {
     try {
       const recipes: Recipe[] = JSON.parse(storedRecipes);
 
-      const selectedRecipe = recipes.find(
-        (item) => item.id === params.id,
-      );
-
-      setRecipe(selectedRecipe ?? null);
-    } catch {
-      setRecipe(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [params.id]);
-
-  if (isLoading) {
-    return (
-      <section className="mx-auto max-w-7xl px-6 py-20 text-center lg:px-10">
-        <p className="text-muted-foreground">Loading recipe...</p>
-      </section>
-    );
-  }
+  // Recipes found for this user (Spoonacular) are cached in MongoDB; the demo
+  // recipes are bundled. Check both so either kind opens.
+  const recipe =
+    (await getCachedRecipe(id)) ?? mockRecipes.find((item) => item.id === id);
 
   if (!recipe) {
     return (
@@ -96,13 +73,7 @@ export default function RecipePage() {
               className="object-cover"
             />
 
-            <button
-              type="button"
-              aria-label={`Save ${recipe.title}`}
-              className="absolute right-4 top-4 flex size-11 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-sm backdrop-blur transition hover:text-red-500"
-            >
-              <Heart className="size-5" />
-            </button>
+            <SaveRecipeButton recipe={recipe} />
           </div>
 
           <div className="mt-7">

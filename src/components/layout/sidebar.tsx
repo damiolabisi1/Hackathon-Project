@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   ChefHat,
   Heart,
@@ -11,6 +11,7 @@ import {
   Settings,
   UserRound,
   CalendarDays,
+  Sparkles,
 } from "lucide-react";
 
 const navigationItems = [
@@ -25,8 +26,13 @@ const navigationItems = [
     icon: ScanLine,
   },
   {
-    label: "Cook Mode",
+    label: "Describe Recipes",
     href: "/scan?mode=chat",
+    icon: Sparkles,
+  },
+  {
+    label: "Cook Mode",
+    href: "/cook",
     icon: Mic,
   },
   {
@@ -35,31 +41,32 @@ const navigationItems = [
     icon: Heart,
   },
   {
-    label: "Meal Planner",
-    href: "/meal-planner",
-    icon: CalendarDays,
-  },
-  {
     label: "Profile",
     href: "/profile",
     icon: UserRound,
-  },
-  {
-    label: "Settings",
-    href: "/settings",
-    icon: Settings,
   },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   function isActiveRoute(href: string) {
-    if (href === "/") {
-      return pathname === "/";
+    const [targetPath, targetQuery] = href.split("?");
+
+    if (pathname !== targetPath) {
+      return false;
     }
 
-    return pathname.startsWith(href);
+    if (!targetQuery) {
+      return true;
+    }
+
+    const targetParams = new URLSearchParams(targetQuery);
+
+    return Array.from(targetParams.entries()).every(
+      ([key, value]) => searchParams.get(key) === value,
+    );
   }
 
   return (

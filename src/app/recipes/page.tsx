@@ -1,154 +1,104 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Search, SlidersHorizontal, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Info, Sparkles } from "lucide-react";
 
-import { RecipeCard } from "@/components/recipes/recipe-card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { RecipeCard } from "@/components/recipes/recipe-card";
+import { mockRecipes } from "@/data/recipes";
 import type { Recipe } from "@/types/recipe";
 
-const filters = [
-  "All",
-  "Quick",
-  "Easy",
-  "High protein",
-  "Vegetarian",
-  "Budget friendly",
-];
-
+/**
+ * Recipes matched to the user's ingredients.
+ *
+ * /ingredients puts the results in sessionStorage and navigates here. They come
+ * from Spoonacular (real recipes) and are personalised by Gemini where possible.
+ *
+ * With nothing generated yet we show the sample recipes instead — the home page
+ * links straight here with "View sample recipes".
+ */
 export default function RecipesPage() {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [activeFilter, setActiveFilter] = useState("All");
-  const [search, setSearch] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  // Start with the samples so they render server-side and are visible instantly
+  // (the home page's "View sample recipes" links straight here). If the user has
+  // actually generated recipes, we swap them in on mount — sessionStorage isn't
+  // readable during SSR.
+  const [recipes, setRecipes] = useState<Recipe[]>(mockRecipes);
+  const [showingSamples, setShowingSamples] = useState(true);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    const storedRecipes = sessionStorage.getItem("generatedRecipes");
+    const timer = window.setTimeout(() => {
+      try {
+        const stored = sessionStorage.getItem("generatedRecipes");
+        const generated = stored ? (JSON.parse(stored) as Recipe[]) : [];
 
-    if (!storedRecipes) {
-      setRecipes([]);
-      setIsLoading(false);
-      return;
-    }
+        if (generated.length > 0) {
+          setRecipes(generated);
+          setShowingSamples(false);
 
-    try {
-      const parsedRecipes: Recipe[] = JSON.parse(storedRecipes);
-      setRecipes(parsedRecipes);
-    } catch {
-      setRecipes([]);
-    } finally {
-      setIsLoading(false);
-    }
+          const storedNotice = sessionStorage.getItem("recipesNotice");
+          if (storedNotice) setNotice(storedNotice);
+        }
+      } catch {
+        // Unreadable — keep showing the samples.
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
-  const filteredRecipes = useMemo(() => {
-    return recipes.filter((recipe) => {
-      const matchesSearch =
-        (recipe.title ?? "")
-          .toLowerCase()
-          .includes(search.toLowerCase()) ||
-        (recipe.description ?? "")
-          .toLowerCase()
-          .includes(search.toLowerCase());
-
-      const matchesFilter =
-        activeFilter === "All" ||
-        recipe.tags.includes(activeFilter) ||
-        recipe.difficulty === activeFilter;
-
-      return matchesSearch && matchesFilter;
-    });
-  }, [recipes, activeFilter, search]);
-
-  if (isLoading) {
-    return (
-      <section className="mx-auto max-w-7xl px-6 py-20 text-center lg:px-10">
-        <Sparkles className="mx-auto size-8 animate-pulse text-green-600" />
-
-        <h1 className="mt-4 text-2xl font-bold">
-          Loading your recipes
-        </h1>
-      </section>
-    );
-  }
-
   return (
-    <section className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
-      <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-        <div>
-          <div className="flex items-center gap-2 text-sm font-semibold text-green-700">
-            <Sparkles className="size-4" />
-            Step 3 of 3
-          </div>
+    <section className="mx-auto max-w-6xl px-6 py-10 lg:px-10">
+      <div className="flex items-center gap-3">
+        <span className="flex size-11 items-center justify-center rounded-xl bg-green-100 text-green-700">
+          <Sparkles className="size-5" />
+        </span>
 
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl">
-            Recipes for you
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            {showingSamples ? "Sample recipes" : "Recipes for you"}
           </h1>
 
-          <p className="mt-3 max-w-2xl text-muted-foreground">
-            Based on your ingredients and preferences, here are the recipes that
-            match best.
+          <p className="mt-1 text-muted-foreground">
+            {showingSamples
+              ? "A taste of what KitchenAid can do. Add your ingredients for recipes matched to you."
+              : "Matched to the ingredients you already have."}
           </p>
         </div>
+      </div>
 
-        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
-          <div className="relative min-w-72">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search recipes..."
-              className="pl-9"
-            />
-          </div>
-
-          <Button type="button" variant="outline">
-            <SlidersHorizontal className="size-4" />
-            Filters
-          </Button>
+      {notice && !showingSamples && (
+        <div className="mt-6 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <Info className="mt-0.5 size-4 shrink-0" />
+          {notice}
         </div>
-      </div>
+      )}
 
-      <div className="mt-8 flex flex-wrap gap-2">
-        {filters.map((filter) => (
-          <button
-            key={filter}
-            type="button"
-            onClick={() => setActiveFilter(filter)}
-            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-              activeFilter === filter
-                ? "border-green-600 bg-green-600 text-white"
-                : "bg-white text-muted-foreground hover:border-green-300 hover:text-green-700"
-            }`}
-          >
-            {filter}
-          </button>
-        ))}
-      </div>
+      {showingSamples && (
+        <div className="mt-6 flex flex-col gap-3 rounded-xl border bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            These are examples. Tell us what you actually have and we will find
+            recipes you can cook right now.
+          </p>
 
-      {filteredRecipes.length > 0 ? (
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {filteredRecipes.map((recipe, index) => (
+          <Button
+            nativeButton={false}
+            className="shrink-0"
+            render={<Link href="/scan?mode=chat">Add my ingredients</Link>}
+          />
+        </div>
+      )}
+
+      {recipes.length > 0 && (
+        <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {recipes.map((recipe, index) => (
             <RecipeCard
               key={recipe.id}
               recipe={recipe}
-              bestMatch={index === 0 && activeFilter === "All"}
+              bestMatch={!showingSamples && index === 0}
             />
           ))}
-        </div>
-      ) : (
-        <div className="mt-10 rounded-3xl border border-dashed p-14 text-center">
-          <Search className="mx-auto size-8 text-green-600" />
-
-          <h2 className="mt-4 text-xl font-bold">
-            No generated recipes found
-          </h2>
-
-          <p className="mt-2 text-sm text-muted-foreground">
-            Return to the ingredients page and generate recipes first.
-          </p>
         </div>
       )}
     </section>

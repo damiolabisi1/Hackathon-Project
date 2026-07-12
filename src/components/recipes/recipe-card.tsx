@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Clock3, Heart, Star, UsersRound } from "lucide-react";
+import { Clock3, Star, UsersRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { SaveRecipeButton } from "@/components/recipes/save-recipe-button";
 import type { Recipe } from "@/types/recipe";
 
 type RecipeCardProps = {
@@ -19,13 +20,11 @@ export function RecipeCard({ recipe, bestMatch = false }: RecipeCardProps) {
         </span>
       )}
 
-      <button
-        type="button"
-        aria-label={`Save ${recipe.title}`}
-        className="absolute right-3 top-3 z-20 flex size-9 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-sm transition hover:text-red-500"
-      >
-        <Heart className="size-4" />
-      </button>
+      <SaveRecipeButton
+        recipe={recipe}
+        className="top-3 right-3 size-9"
+        iconClassName="size-4"
+      />
 
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         <Image
