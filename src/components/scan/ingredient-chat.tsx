@@ -45,19 +45,18 @@ export function IngredientChat() {
     {
       id: crypto.randomUUID(),
       role: "assistant",
-      text:
-        "Hi! Tell me what ingredients you currently have, and I’ll help you turn them into a meal.",
+      text: "Hi! Tell me what ingredients you currently have, and I’ll help you turn them into a meal.",
     },
   ]);
 
   const [input, setInput] = useState("");
-  const [chatState, setChatState] =
-    useState<IngredientChatResponse | null>(null);
+  const [chatState, setChatState] = useState<IngredientChatResponse | null>(
+    null,
+  );
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isSending, setIsSending] = useState(false);
-  const [isGeneratingRecipes, setIsGeneratingRecipes] =
-    useState(false);
+  const [isGeneratingRecipes, setIsGeneratingRecipes] = useState(false);
   const [error, setError] = useState("");
 
   const messagesRef = useRef(messages);
@@ -113,9 +112,7 @@ export function IngredientChat() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          result.error ?? "We could not generate recipes.",
-        );
+        throw new Error(result.error ?? "We could not generate recipes.");
       }
 
       const convertedRecipes = await convertGeneratedRecipes(
@@ -142,10 +139,7 @@ export function IngredientChat() {
         text: finalReply,
       };
 
-      messagesRef.current = [
-        ...messagesRef.current,
-        assistantMessage,
-      ];
+      messagesRef.current = [...messagesRef.current, assistantMessage];
 
       setMessages(messagesRef.current);
 
@@ -166,9 +160,7 @@ export function IngredientChat() {
     }
   }
 
-  async function sendMessage(
-    rawText: string,
-  ): Promise<string | null> {
+  async function sendMessage(rawText: string): Promise<string | null> {
     const cleaned = rawText.trim();
 
     if (
@@ -186,10 +178,7 @@ export function IngredientChat() {
       text: cleaned,
     };
 
-    const updatedMessages = [
-      ...messagesRef.current,
-      userMessage,
-    ];
+    const updatedMessages = [...messagesRef.current, userMessage];
 
     messagesRef.current = updatedMessages;
     setMessages(updatedMessages);
@@ -199,11 +188,12 @@ export function IngredientChat() {
     setError("");
 
     try {
-      const apiMessages: IngredientChatMessage[] =
-        updatedMessages.map((message) => ({
+      const apiMessages: IngredientChatMessage[] = updatedMessages.map(
+        (message) => ({
           role: message.role,
           content: message.text,
-        }));
+        }),
+      );
 
       const result = await sendIngredientMessage(apiMessages);
 
@@ -215,10 +205,7 @@ export function IngredientChat() {
         text: result.reply,
       };
 
-      const messagesWithReply = [
-        ...messagesRef.current,
-        assistantMessage,
-      ];
+      const messagesWithReply = [...messagesRef.current, assistantMessage];
 
       messagesRef.current = messagesWithReply;
       setMessages(messagesWithReply);
@@ -259,16 +246,9 @@ export function IngredientChat() {
       lastSpokenIdRef.current = lastMessage.id;
       void speak(lastMessage.text);
     }
-  }, [
-    messages,
-    voiceReplies,
-    conversation.active,
-    speak,
-  ]);
+  }, [messages, voiceReplies, conversation.active, speak]);
 
-  function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void sendMessage(input);
   }
@@ -280,10 +260,7 @@ export function IngredientChat() {
   }
 
   function openRecipe(recipe: Recipe) {
-    sessionStorage.setItem(
-      "selectedRecipe",
-      JSON.stringify(recipe),
-    );
+    sessionStorage.setItem("selectedRecipe", JSON.stringify(recipe));
 
     router.push(`/recipes/${recipe.id}`);
   }
@@ -335,9 +312,7 @@ export function IngredientChat() {
 
             <button
               type="button"
-              onClick={() =>
-                setVoiceReplies((current) => !current)
-              }
+              onClick={() => setVoiceReplies((current) => !current)}
               aria-pressed={voiceReplies}
               aria-label={
                 voiceReplies
@@ -352,9 +327,7 @@ export function IngredientChat() {
             >
               {voiceReplies ? (
                 <Volume2
-                  className={`size-5 ${
-                    isSpeaking ? "animate-pulse" : ""
-                  }`}
+                  className={`size-5 ${isSpeaking ? "animate-pulse" : ""}`}
                 />
               ) : (
                 <VolumeX className="size-5" />
@@ -364,14 +337,12 @@ export function IngredientChat() {
         </div>
       </div>
 
-      <div className="flex max-h-[700px] min-h-[390px] flex-col gap-4 overflow-y-auto p-5">
+      <div className="flex h-[330px] flex-col gap-4 overflow-y-auto overscroll-contain p-5">
         {messages.map((message) => (
           <div
             key={message.id}
             className={`flex items-start gap-3 ${
-              message.role === "user"
-                ? "justify-end"
-                : "justify-start"
+              message.role === "user" ? "justify-end" : "justify-start"
             }`}
           >
             {message.role === "assistant" && (
@@ -435,9 +406,7 @@ export function IngredientChat() {
 
             <p>
               <strong>Servings:</strong>{" "}
-              {chatState.servings > 0
-                ? chatState.servings
-                : "Not provided"}
+              {chatState.servings > 0 ? chatState.servings : "Not provided"}
             </p>
 
             <p>
@@ -462,8 +431,7 @@ export function IngredientChat() {
                   <Image
                     src={recipe.image}
                     alt={
-                      recipe.imageAlt ||
-                      `Photo representing ${recipe.title}`
+                      recipe.imageAlt || `Photo representing ${recipe.title}`
                     }
                     fill
                     unoptimized
@@ -472,9 +440,7 @@ export function IngredientChat() {
                 </div>
 
                 <div className="p-4">
-                  <h3 className="font-bold">
-                    {recipe.title}
-                  </h3>
+                  <h3 className="font-bold">{recipe.title}</h3>
 
                   <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                     {recipe.description}
@@ -519,16 +485,11 @@ export function IngredientChat() {
       )}
 
       {recipes.length === 0 && (
-        <form
-          onSubmit={handleSubmit}
-          className="flex gap-3 border-t p-5"
-        >
+        <form onSubmit={handleSubmit} className="flex gap-3 border-t p-5">
           <div className="relative flex-1">
             <Input
               value={input}
-              onChange={(event) =>
-                setInput(event.target.value)
-              }
+              onChange={(event) => setInput(event.target.value)}
               placeholder={
                 isRecording
                   ? "Listening… tap the mic to stop"
@@ -536,27 +497,17 @@ export function IngredientChat() {
                     ? "Transcribing…"
                     : "Reply to the sous-chef..."
               }
-              disabled={
-                isSending ||
-                isGeneratingRecipes ||
-                isTranscribing
-              }
+              disabled={isSending || isGeneratingRecipes || isTranscribing}
               className="pr-11"
             />
 
             <button
               type="button"
               onClick={handleMic}
-              disabled={
-                isSending ||
-                isGeneratingRecipes ||
-                isTranscribing
-              }
+              disabled={isSending || isGeneratingRecipes || isTranscribing}
               aria-pressed={isRecording}
               aria-label={
-                isRecording
-                  ? "Stop recording"
-                  : "Record with microphone"
+                isRecording ? "Stop recording" : "Record with microphone"
               }
               className={`absolute right-1.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg transition ${
                 isRecording
@@ -578,11 +529,7 @@ export function IngredientChat() {
             type="submit"
             size="icon"
             aria-label="Send message"
-            disabled={
-              !input.trim() ||
-              isSending ||
-              isGeneratingRecipes
-            }
+            disabled={!input.trim() || isSending || isGeneratingRecipes}
           >
             {isSending ? (
               <LoaderCircle className="size-4 animate-spin" />
