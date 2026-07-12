@@ -1,15 +1,13 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   Check,
   ChefHat,
   Clock3,
   Play,
+  Star,
   UsersRound,
   X,
 } from "lucide-react";
@@ -19,13 +17,14 @@ import { SaveRecipeButton } from "@/components/recipes/save-recipe-button";
 import { mockRecipes } from "@/data/recipes";
 import { getCachedRecipe } from "@/lib/db/recipes";
 
-    if (!storedRecipes) {
-      setIsLoading(false);
-      return;
-    }
+type RecipePageProps = {
+  params: Promise<{
+    id: string;
+  }>;
+};
 
-    try {
-      const recipes: Recipe[] = JSON.parse(storedRecipes);
+export default async function RecipePage({ params }: RecipePageProps) {
+  const { id } = await params;
 
   // Recipes found for this user (Spoonacular) are cached in MongoDB; the demo
   // recipes are bundled. Check both so either kind opens.
@@ -33,21 +32,7 @@ import { getCachedRecipe } from "@/lib/db/recipes";
     (await getCachedRecipe(id)) ?? mockRecipes.find((item) => item.id === id);
 
   if (!recipe) {
-    return (
-      <section className="mx-auto max-w-4xl px-6 py-20 text-center">
-        <h1 className="text-2xl font-bold">Recipe not found</h1>
-
-        <p className="mt-3 text-muted-foreground">
-          This recipe may no longer be available.
-        </p>
-
-        <Button
-          nativeButton={false}
-          className="mt-6"
-          render={<Link href="/recipes">Back to recipes</Link>}
-        />
-      </section>
-    );
+    notFound();
   }
 
   return (
@@ -65,9 +50,8 @@ import { getCachedRecipe } from "@/lib/db/recipes";
           <div className="relative aspect-[16/10] overflow-hidden rounded-3xl bg-muted shadow-sm">
             <Image
               src={recipe.image}
-              alt={recipe.imageAlt || `Photo representing ${recipe.title}`}
+              alt={recipe.title}
               fill
-              unoptimized
               priority
               className="object-cover"
             />
@@ -109,6 +93,13 @@ import { getCachedRecipe } from "@/lib/db/recipes";
                 <UsersRound className="size-4 text-green-600" />
                 {recipe.servings} servings
               </span>
+
+              {recipe.rating && (
+                <span className="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-2 text-sm font-medium">
+                  <Star className="size-4 fill-amber-400 text-amber-400" />
+                  {recipe.rating}
+                </span>
+              )}
             </div>
 
             <div className="mt-7 flex flex-wrap gap-2">
@@ -132,9 +123,7 @@ import { getCachedRecipe } from "@/lib/db/recipes";
                   What you need
                 </p>
 
-                <h2 className="mt-1 text-2xl font-extrabold">
-                  Ingredients
-                </h2>
+                <h2 className="mt-1 text-2xl font-extrabold">Ingredients</h2>
               </div>
 
               <span className="rounded-full bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground">
@@ -187,20 +176,13 @@ import { getCachedRecipe } from "@/lib/db/recipes";
           </section>
 
           <section className="rounded-3xl border bg-white p-6 shadow-sm">
-            <p className="text-sm font-semibold text-green-700">
-              Step by step
-            </p>
+            <p className="text-sm font-semibold text-green-700">Step by step</p>
 
-            <h2 className="mt-1 text-2xl font-extrabold">
-              Instructions
-            </h2>
+            <h2 className="mt-1 text-2xl font-extrabold">Instructions</h2>
 
             <div className="mt-6 space-y-5">
               {recipe.instructions.map((instruction) => (
-                <div
-                  key={instruction.step}
-                  className="flex items-start gap-4"
-                >
+                <div key={instruction.step} className="flex items-start gap-4">
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-green-600 text-sm font-bold text-white">
                     {instruction.step}
                   </span>
