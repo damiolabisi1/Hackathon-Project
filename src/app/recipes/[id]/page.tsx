@@ -27,6 +27,7 @@ export default function RecipePage() {
   useEffect(() => {
     const storedRecipes = sessionStorage.getItem("generatedRecipes");
 
+    //if stored recipes is null, set isLoading to false and return
     if (!storedRecipes) {
       setIsLoading(false);
       return;
