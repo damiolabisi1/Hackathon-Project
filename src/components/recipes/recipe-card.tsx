@@ -20,11 +20,7 @@ export function RecipeCard({ recipe, bestMatch = false }: RecipeCardProps) {
         </span>
       )}
 
-      <SaveRecipeButton
-        recipe={recipe}
-        className="top-3 right-3 size-9"
-        iconClassName="size-4"
-      />
+      <SaveRecipeButton recipe={recipe} />
 
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         <Image
@@ -35,6 +31,7 @@ export function RecipeCard({ recipe, bestMatch = false }: RecipeCardProps) {
           className="object-cover transition duration-300 group-hover:scale-105"
         />
       </div>
+
       {recipe.photographer && recipe.photoUrl && (
         <p className="px-5 pt-2 text-xs text-muted-foreground">
           Photo by{" "}

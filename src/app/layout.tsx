@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
-import { Suspense } from "react";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,9 +30,7 @@ export default function RootLayout({
       className={`${inter.variable} ${manrope.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Suspense fallback={null}>
-          <Sidebar />
-        </Suspense>
+        <Sidebar />
 
         <main className="min-h-screen lg:pl-60">{children}</main>
       </body>

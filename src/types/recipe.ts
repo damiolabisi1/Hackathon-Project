@@ -13,13 +13,11 @@ export type Recipe = {
   id: string;
   title: string;
   description: string;
-
   image: string;
   imageAlt: string;
   photographer?: string | null;
   photographerUrl?: string | null;
   photoUrl?: string | null;
-  
   cookingTimeMinutes: number;
   difficulty: "Easy" | "Medium" | "Hard";
   servings: number;
@@ -29,4 +27,6 @@ export type Recipe = {
   ingredients: RecipeIngredient[];
   missingIngredients: string[];
   instructions: RecipeStep[];
+  substitutions?: string[];
+  wasteReductionNote?: string;
 };

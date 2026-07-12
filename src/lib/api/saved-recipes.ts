@@ -16,29 +16,6 @@ export async function fetchSavedRecipes(): Promise<SavedRecipe[]> {
   return result.recipes ?? [];
 }
 
-/**
- * The ids of every saved recipe, shared across all the hearts on a page.
- *
- * A grid of recipe cards mounts one heart each; without this they would each
- * fire their own identical request. They share one instead.
- */
-let savedIdsPromise: Promise<Set<string>> | null = null;
-
-export function getSavedRecipeIds(): Promise<Set<string>> {
-  if (!savedIdsPromise) {
-    savedIdsPromise = fetchSavedRecipes()
-      .then((recipes) => new Set(recipes.map((recipe) => recipe.id)))
-      // No database configured — nothing is saved, and no heart should break.
-      .catch(() => new Set<string>());
-  }
-  return savedIdsPromise;
-}
-
-/** Call after saving/unsaving so the next read reflects the change. */
-export function invalidateSavedRecipeIds(): void {
-  savedIdsPromise = null;
-}
-
 export async function saveRecipe(recipe: Recipe): Promise<SavedRecipe> {
   const response = await fetch("/api/recipes/saved", {
     method: "POST",

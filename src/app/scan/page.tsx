@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   CircleCheck,
@@ -10,14 +10,11 @@ import {
   ScanLine,
 } from "lucide-react";
 
-import { IngredientChat } from "@/components/scan/ingredient-chat";
 import { ImageUploader } from "@/components/scan/image-uploader";
 import { Button } from "@/components/ui/button";
 import { detectIngredients } from "@/lib/api/ingredients";
 import type { IngredientDetectionResponse } from "@/types/ingredient";
-import { createId } from "@/lib/create-id";
-
-type InputMode = "photo" | "chat";
+import { IngredientChat } from "@/components/scan/ingredient-chat";
 
 const tips = [
   "Use good lighting.",
@@ -31,25 +28,21 @@ export default function ScanPage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isDetecting, setIsDetecting] = useState(false);
   const [error, setError] = useState("");
-  const [inputMode, setInputMode] = useState<InputMode>("photo");
+  const searchParams = useSearchParams();
+  const [inputMode, setInputMode] = useState<"photo" | "chat">("photo");
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const requestedMode = params.get("mode");
+    const mode = searchParams.get("mode");
 
-    setInputMode(requestedMode === "chat" ? "chat" : "photo");
-  }, []);
-
-  function changeInputMode(mode: InputMode) {
-    setInputMode(mode);
-
-    const nextUrl = `/scan?mode=${mode}`;
-
-    window.history.replaceState(window.history.state, "", nextUrl);
-  }
+    if (mode === "chat") {
+      setInputMode("chat");
+    } else {
+      setInputMode("photo");
+    }
+  }, [searchParams]);
 
   async function handleDetectIngredients() {
-    if (!selectedImage || isDetecting) return;
+    if (!selectedImage) return;
 
     setIsDetecting(true);
     setError("");
@@ -61,10 +54,10 @@ export default function ScanPage() {
       sessionStorage.setItem("detectedIngredients", JSON.stringify(result));
 
       router.push("/ingredients");
-    } catch (caughtError) {
+    } catch (error) {
       setError(
-        caughtError instanceof Error
-          ? caughtError.message
+        error instanceof Error
+          ? error.message
           : "Something went wrong while detecting the ingredients.",
       );
     } finally {
@@ -89,15 +82,17 @@ export default function ScanPage() {
         <p className="mt-3 max-w-2xl text-muted-foreground">
           {inputMode === "photo"
             ? "Upload a clear picture of the ingredients you already have. Our AI will identify them before suggesting recipes."
-            : "Describe the ingredients available in your kitchen, and Sous Chef will organize them before suggesting recipes."}
+            : "Describe the ingredients available in your kitchen, and Sous Chef will help organize them before suggesting recipes."}
         </p>
       </div>
-
       <div className="mb-6 grid grid-cols-2 rounded-2xl bg-muted p-1">
         <button
           type="button"
-          onClick={() => changeInputMode("photo")}
-          className={`rounded-xl px-3 py-3 text-sm font-semibold transition sm:px-4 ${
+          onClick={() => {
+            setInputMode("photo");
+            router.push("/scan?mode=photo");
+          }}
+          className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
             inputMode === "photo"
               ? "bg-white text-green-700 shadow-sm"
               : "text-muted-foreground"
@@ -108,8 +103,11 @@ export default function ScanPage() {
 
         <button
           type="button"
-          onClick={() => changeInputMode("chat")}
-          className={`rounded-xl px-3 py-3 text-sm font-semibold transition sm:px-4 ${
+          onClick={() => {
+            setInputMode("chat");
+            router.push("/scan?mode=chat");
+          }}
+          className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
             inputMode === "chat"
               ? "bg-white text-green-700 shadow-sm"
               : "text-muted-foreground"
@@ -121,7 +119,7 @@ export default function ScanPage() {
 
       <div
         className={`grid gap-8 ${
-          inputMode === "photo" ? "xl:grid-cols-[1fr_320px]" : "grid-cols-1"
+          inputMode === "photo" ? "xl:grid-cols-[1fr_320px]" : "xl:grid-cols-1"
         }`}
       >
         {inputMode === "photo" ? (
@@ -160,26 +158,7 @@ export default function ScanPage() {
         ) : (
           <IngredientChat
             onComplete={({ ingredients, dietaryPreferences }) => {
-              const result = {
-                ingredients: ingredients.map((name) => ({
-                  id: createId(),
-                  name,
-                  confirmed: true,
-                })),
-                uncertainItems: [],
-              };
-
-              sessionStorage.setItem(
-                "detectedIngredients",
-                JSON.stringify(result),
-              );
-
-              sessionStorage.setItem(
-                "dietaryPreferences",
-                JSON.stringify(dietaryPreferences),
-              );
-
-              router.push("/ingredients");
+              // your existing code
             }}
           />
         )}
@@ -196,7 +175,6 @@ export default function ScanPage() {
               {tips.map((tip) => (
                 <div key={tip} className="flex items-start gap-3">
                   <CircleCheck className="mt-0.5 size-5 shrink-0 text-green-600" />
-
                   <p className="text-sm text-muted-foreground">{tip}</p>
                 </div>
               ))}

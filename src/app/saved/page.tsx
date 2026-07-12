@@ -1,6 +1,7 @@
 "use client";
-
+//fix this
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Clock, Heart, LoaderCircle, Trash2, Users } from "lucide-react";
 
@@ -111,8 +112,19 @@ export default function SavedRecipesPage() {
           {recipes.map((recipe) => (
             <div
               key={recipe.id}
-              className="flex flex-col rounded-3xl border bg-white p-5 shadow-sm"
+              className="flex flex-col overflow-hidden rounded-3xl border bg-white shadow-sm"
             >
+              <div className="relative aspect-[4/3] bg-muted">
+                <Image
+                  src={recipe.image}
+                  alt={recipe.imageAlt || `Photo representing ${recipe.title}`}
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
+              </div>
+
+              <div className="flex flex-1 flex-col p-5">
               <h2 className="text-lg font-bold">{recipe.title}</h2>
 
               <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
@@ -155,6 +167,7 @@ export default function SavedRecipesPage() {
                     <Trash2 className="size-4" />
                   )}
                 </Button>
+              </div>
               </div>
             </div>
           ))}
