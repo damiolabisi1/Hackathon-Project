@@ -69,7 +69,7 @@ export function SaveRecipeButton({ recipe }: { recipe: Recipe }) {
         aria-pressed={saved}
         aria-label={saved ? `Remove ${recipe.title}` : `Save ${recipe.title}`}
         title={saved ? "Saved — click to remove" : "Save recipe"}
-        className={`absolute top-4 right-4 flex size-11 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur transition hover:text-red-500 disabled:opacity-60 ${
+        className={`absolute top-4 right-4 z-20 flex size-11 items-center justify-center rounded-full border border-white/80 bg-white/95 shadow-md backdrop-blur transition hover:scale-105 hover:text-red-500 disabled:opacity-60 ${
           saved ? "text-red-500" : "text-gray-700"
         }`}
       >
@@ -81,7 +81,7 @@ export function SaveRecipeButton({ recipe }: { recipe: Recipe }) {
       </button>
 
       {error && (
-        <p className="absolute right-4 bottom-4 rounded-lg bg-red-50 px-3 py-1.5 text-xs text-red-700 shadow-sm">
+        <p className="absolute right-4 bottom-4 z-20 rounded-lg bg-red-50 px-3 py-1.5 text-xs text-red-700 shadow-sm">
           {error}
         </p>
       )}

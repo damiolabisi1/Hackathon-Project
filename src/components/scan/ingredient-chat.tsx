@@ -19,6 +19,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SaveRecipeButton } from "@/components/recipes/save-recipe-button";
 import {
   sendIngredientMessage,
   type IngredientChatMessage,
@@ -421,41 +422,47 @@ export function IngredientChat() {
         {recipes.length > 0 && (
           <div className="grid gap-4 pt-2 md:grid-cols-3">
             {recipes.map((recipe) => (
-              <button
+              <article
                 key={recipe.id}
-                type="button"
-                onClick={() => openRecipe(recipe)}
-                className="overflow-hidden rounded-2xl border bg-white text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                className="relative overflow-hidden rounded-2xl border bg-white text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md"
               >
-                <div className="relative aspect-[4/3] bg-muted">
-                  <Image
-                    src={recipe.image}
-                    alt={
-                      recipe.imageAlt || `Photo representing ${recipe.title}`
-                    }
-                    fill
-                    unoptimized
-                    className="object-cover"
-                  />
-                </div>
+                <SaveRecipeButton recipe={recipe} />
 
-                <div className="p-4">
-                  <h3 className="font-bold">{recipe.title}</h3>
-
-                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                    {recipe.description}
-                  </p>
-
-                  <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock className="size-3.5" />
-                      {recipe.cookingTimeMinutes} min
-                    </span>
-
-                    <span>{recipe.difficulty}</span>
+                <button
+                  type="button"
+                  onClick={() => openRecipe(recipe)}
+                  className="block w-full text-left"
+                >
+                  <div className="relative aspect-[4/3] bg-muted">
+                    <Image
+                      src={recipe.image}
+                      alt={
+                        recipe.imageAlt || `Photo representing ${recipe.title}`
+                      }
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
                   </div>
-                </div>
-              </button>
+
+                  <div className="p-4">
+                    <h3 className="font-bold">{recipe.title}</h3>
+
+                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                      {recipe.description}
+                    </p>
+
+                    <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Clock className="size-3.5" />
+                        {recipe.cookingTimeMinutes} min
+                      </span>
+
+                      <span>{recipe.difficulty}</span>
+                    </div>
+                  </div>
+                </button>
+              </article>
             ))}
           </div>
         )}

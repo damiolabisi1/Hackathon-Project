@@ -1,9 +1,9 @@
 "use client";
-//fix this
+
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Heart, LoaderCircle, Trash2, Users } from "lucide-react";
+import { Clock, Heart, LoaderCircle, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -112,8 +112,23 @@ export default function SavedRecipesPage() {
           {recipes.map((recipe) => (
             <div
               key={recipe.id}
-              className="flex flex-col overflow-hidden rounded-3xl border bg-white shadow-sm"
+              className="relative flex flex-col overflow-hidden rounded-3xl border bg-white shadow-sm"
             >
+              <button
+                type="button"
+                aria-label={`Remove ${recipe.title} from saved recipes`}
+                title="Saved — click to remove"
+                disabled={removingId === recipe.id}
+                onClick={() => remove(recipe.id)}
+                className="absolute top-4 right-4 z-20 flex size-11 items-center justify-center rounded-full border border-white/80 bg-white/95 text-red-500 shadow-md backdrop-blur transition hover:scale-105 disabled:opacity-60"
+              >
+                {removingId === recipe.id ? (
+                  <LoaderCircle className="size-5 animate-spin" />
+                ) : (
+                  <Heart className="size-5 fill-current" />
+                )}
+              </button>
+
               <div className="relative aspect-[4/3] bg-muted">
                 <Image
                   src={recipe.image}
@@ -125,49 +140,32 @@ export default function SavedRecipesPage() {
               </div>
 
               <div className="flex flex-1 flex-col p-5">
-              <h2 className="text-lg font-bold">{recipe.title}</h2>
+                <h2 className="text-lg font-bold">{recipe.title}</h2>
 
-              <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                {recipe.description}
-              </p>
+                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                  {recipe.description}
+                </p>
 
-              <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <Clock className="size-4" />
-                  {recipe.cookingTimeMinutes} min
-                </span>
+                <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="size-4" />
+                    {recipe.cookingTimeMinutes} min
+                  </span>
 
-                <span className="flex items-center gap-1.5">
-                  <Users className="size-4" />
-                  {recipe.servings} servings
-                </span>
+                  <span className="flex items-center gap-1.5">
+                    <Users className="size-4" />
+                    {recipe.servings} servings
+                  </span>
 
-                <span>{recipe.difficulty}</span>
-              </div>
+                  <span>{recipe.difficulty}</span>
+                </div>
 
-              <div className="mt-5 flex gap-2">
                 <Button
                   nativeButton={false}
                   variant="outline"
-                  className="flex-1"
+                  className="mt-5 w-full"
                   render={<Link href={`/recipes/${recipe.id}`}>View</Link>}
                 />
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`Remove ${recipe.title}`}
-                  disabled={removingId === recipe.id}
-                  onClick={() => remove(recipe.id)}
-                >
-                  {removingId === recipe.id ? (
-                    <LoaderCircle className="size-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="size-4" />
-                  )}
-                </Button>
-              </div>
               </div>
             </div>
           ))}

@@ -4,6 +4,7 @@ import { ChefHat, Clock3, Mic, UsersRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { CookMode } from "@/components/cook/cook-mode";
+import { SaveRecipeButton } from "@/components/recipes/save-recipe-button";
 import { mockRecipes } from "@/data/recipes";
 import { getCachedRecipe } from "@/lib/db/recipes";
 import { listSavedRecipes } from "@/lib/db/saved-recipes";
@@ -101,8 +102,10 @@ function RecipeRow({ title, recipes }: { title: string; recipes: Recipe[] }) {
         {recipes.map((recipe) => (
           <article
             key={recipe.id}
-            className="group overflow-hidden rounded-3xl border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+            className="group relative overflow-hidden rounded-3xl border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
           >
+            <SaveRecipeButton recipe={recipe} />
+
             <div className="relative aspect-[4/3] overflow-hidden bg-muted">
               <Image
                 src={recipe.image}
