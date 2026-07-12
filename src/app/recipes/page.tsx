@@ -90,6 +90,7 @@ export default function RecipesPage() {
               key={recipe.id}
               recipe={recipe}
               bestMatch={!showingSamples && index === 0}
+              showMissingIngredients={!showingSamples}
             />
           ))}
         </div>

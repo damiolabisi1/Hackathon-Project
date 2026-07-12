@@ -23,6 +23,7 @@ import type { Recipe } from "@/types/recipe";
 export default function RecipePage() {
   const params = useParams<{ id: string }>();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [showMissingIngredients, setShowMissingIngredients] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -30,6 +31,17 @@ export default function RecipePage() {
 
     async function loadRecipe() {
       try {
+        const savedRecipes = await fetchSavedRecipes();
+        const savedRecipe = savedRecipes.find((item) => item.id === params.id);
+
+        if (savedRecipe) {
+          if (!cancelled) {
+            setRecipe(savedRecipe);
+            setShowMissingIngredients(false);
+          }
+          return;
+        }
+
         const storedRecipes = sessionStorage.getItem("generatedRecipes");
 
         if (storedRecipes) {
@@ -37,16 +49,17 @@ export default function RecipePage() {
           const generatedRecipe = recipes.find((item) => item.id === params.id);
 
           if (generatedRecipe) {
-            if (!cancelled) setRecipe(generatedRecipe);
+            if (!cancelled) {
+              setRecipe(generatedRecipe);
+              setShowMissingIngredients(true);
+            }
             return;
           }
         }
 
-        const savedRecipes = await fetchSavedRecipes();
-        const savedRecipe = savedRecipes.find((item) => item.id === params.id);
-
         if (!cancelled) {
-          setRecipe(savedRecipe ?? null);
+          setRecipe(null);
+          setShowMissingIngredients(false);
         }
       } catch (error) {
         console.error("Could not load recipe:", error);
@@ -214,12 +227,12 @@ export default function RecipePage() {
                 >
                   <span
                     className={`flex size-8 shrink-0 items-center justify-center rounded-full ${
-                      ingredient.available
+                      !showMissingIngredients || ingredient.available
                         ? "bg-green-100 text-green-700"
                         : "bg-red-100 text-red-600"
                     }`}
                   >
-                    {ingredient.available ? (
+                    {!showMissingIngredients || ingredient.available ? (
                       <Check className="size-4" />
                     ) : (
                       <X className="size-4" />
@@ -236,7 +249,7 @@ export default function RecipePage() {
               ))}
             </div>
 
-            {recipe.missingIngredients.length > 0 && (
+            {showMissingIngredients && recipe.missingIngredients.length > 0 && (
               <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 p-4">
                 <p className="text-sm font-bold text-red-700">
                   Missing ingredients

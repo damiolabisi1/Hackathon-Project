@@ -9,9 +9,14 @@ import type { Recipe } from "@/types/recipe";
 type RecipeCardProps = {
   recipe: Recipe;
   bestMatch?: boolean;
+  showMissingIngredients?: boolean;
 };
 
-export function RecipeCard({ recipe, bestMatch = false }: RecipeCardProps) {
+export function RecipeCard({
+  recipe,
+  bestMatch = false,
+  showMissingIngredients = false,
+}: RecipeCardProps) {
   return (
     <article className="group relative overflow-hidden rounded-3xl border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
       {bestMatch && (
@@ -115,7 +120,7 @@ export function RecipeCard({ recipe, bestMatch = false }: RecipeCardProps) {
           </div>
         </div>
 
-        {recipe.missingIngredients.length > 0 && (
+        {showMissingIngredients && recipe.missingIngredients.length > 0 && (
           <p className="mt-4 text-xs text-red-600">
             Missing: {recipe.missingIngredients.join(", ")}
           </p>
